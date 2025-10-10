@@ -1,0 +1,23 @@
+{
+	"name": "to-do-list-avancee",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite  --host",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"devDependencies": {
+		"vite": "npm:rolldown-vite@7.1.14"
+	},
+	"overrides": {
+		"vite": "npm:rolldown-vite@7.1.14"
+	},
+	"dependencies": {
+		"@tailwindcss/vite": "^4.1.14",
+		"date-fns": "^4.1.0",
+		"tailwindcss": "^4.1.14",
+		"uuid": "^13.0.0"
+	}
+}
