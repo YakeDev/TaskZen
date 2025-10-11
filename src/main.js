@@ -1,9 +1,13 @@
 import TaskManager from './taskManager.js'
 import tasksData from './data/tasks.json'
+import renderTasks from './ui.js'
 
 tasksData.forEach((task) => {
 	TaskManager.addTask(task.title, task.description, task.category, task.dueDate)
 })
+
+// Initialisation
+renderTasks()
 
 console.log("Tâches d'aujourd’hui :", TaskManager.filterTasksByPeriod('today'))
 console.log('Tâches de demain :', TaskManager.filterTasksByPeriod('tomorrow'))
@@ -22,4 +26,4 @@ console.log(
 	TaskManager.getTasksByCategory('Étude')
 )
 
-console.log(TaskManager.getTasks())
+console.log(TaskManager.getStats(TaskManager.getTasks()))

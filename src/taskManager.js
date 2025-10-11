@@ -9,10 +9,6 @@ import {
 	isValid as isValidDate,
 } from 'date-fns'
 
-/**
- * Small helper: normalize any incoming date-like value to a Date or null.
- * Accepts Date | string (ISO) | null/undefined.
- */
 function toDateOrNull(value) {
 	if (!value) return null
 	if (value instanceof Date) return isValidDate(value) ? value : null
@@ -28,26 +24,27 @@ const TaskManager = (() => {
 	const tasks = []
 	const categories = ['Par defaut', 'Étude', 'Travail', 'Santé']
 
+	// ✅ Codes internes + labels FR pour l'affichage
 	const STATUS = {
-		PENDING: 'A faire',
-		IN_PROGRESS: 'En cours',
-		COMPLETED: 'Terminée',
-		BLOCKED: 'Bloquée',
+		PENDING: 'pending',
+		IN_PROGRESS: 'in-progress',
+		COMPLETED: 'completed',
+		BLOCKED: 'blocked',
 	}
 
-	/**
-	 * Add new task
-	 * @param {string} title
-	 * @param {string} [description]
-	 * @param {string} [category]
-	 * @param {Date|string|null} [dueDate]
-	 * @returns {object} the created task
-	 */
+	const STATUS_LABELS = {
+		pending: 'A faire',
+		'in-progress': 'En cours',
+		completed: 'Terminée',
+		blocked: 'Bloquée',
+	}
+
 	function addTask(
 		title,
 		description = '',
 		category = categories[0],
-		dueDate = null
+		dueDate = null,
+		status = STATUS.PENDING
 	) {
 		const due = toDateOrNull(dueDate)
 		const newTask = {
@@ -56,19 +53,13 @@ const TaskManager = (() => {
 			description,
 			category,
 			dueDate: due,
-			status: STATUS.PENDING,
+			status, // <-- code
 			createdAt: new Date(),
 		}
 		tasks.push(newTask)
-		console.log(`Tâche ajoutée : ${newTask.title} (${newTask.category})`)
 		return { ...newTask }
 	}
 
-	/**
-	 * Supprimer une tâche
-	 * @param {string} id
-	 * @returns {boolean} true si supprimée
-	 */
 	function deleteTask(id) {
 		const index = tasks.findIndex((task) => task.id === id)
 		if (index !== -1) {
@@ -78,12 +69,6 @@ const TaskManager = (() => {
 		return false
 	}
 
-	/**
-	 * Marquer comme terminée / revenir à "A faire"
-	 * (toggle utile pour UI simples)
-	 * @param {string} id
-	 * @returns {object|null} tâche mise à jour ou null si introuvable
-	 */
 	function toggleComplete(id) {
 		const task = tasks.find((t) => t.id === id)
 		if (!task) return null
@@ -92,35 +77,18 @@ const TaskManager = (() => {
 		return { ...task }
 	}
 
-	/**
-	 * Mettre à jour le statut d'une tâche
-	 * @param {string} id
-	 * @param {string} newStatus one of STATUS values
-	 * @returns {object|null} tâche mise à jour ou null si introuvable
-	 */
 	function updateStatus(id, newStatus) {
-		const validStatuses = Object.values(STATUS)
-		if (!validStatuses.includes(newStatus)) {
+		const valid = Object.values(STATUS)
+		if (!valid.includes(newStatus)) {
 			console.warn(`Statut invalide : ${newStatus}`)
 			return null
 		}
 		const task = tasks.find((t) => t.id === id)
-		if (task) {
-			task.status = newStatus
-			console.log(`Tâche "${task.title}" est maintenant : ${newStatus}`)
-			return { ...task }
-		} else {
-			console.log(`Tâche avec id ${id} non trouvée`)
-			return null
-		}
+		if (!task) return null
+		task.status = newStatus
+		return { ...task }
 	}
 
-	/**
-	 * Mettre à jour les champs d'une tâche (titre, description, catégorie, dueDate)
-	 * @param {string} id
-	 * @param {{title?: string, description?: string, category?: string, dueDate?: Date|string|null}} patch
-	 * @returns {object|null}
-	 */
 	function updateTask(id, patch = {}) {
 		const task = tasks.find((t) => t.id === id)
 		if (!task) return null
@@ -128,20 +96,18 @@ const TaskManager = (() => {
 		if (patch.description !== undefined) task.description = patch.description
 		if (patch.category !== undefined) task.category = patch.category
 		if (patch.dueDate !== undefined) task.dueDate = toDateOrNull(patch.dueDate)
+		if (patch.status !== undefined) task.status = patch.status // <-- pris en charge
 		return { ...task }
 	}
 
-	// Afficher toutes les tâches (copie défensive)
 	function getTasks() {
 		return tasks.map((t) => ({ ...t }))
 	}
 
-	// Lire les catégories disponibles
 	function getCategories() {
 		return [...categories]
 	}
 
-	// Trier les tâches par catégorie
 	function getTasksByCategory(categoryName) {
 		return tasks
 			.filter(
@@ -152,15 +118,10 @@ const TaskManager = (() => {
 			.map((t) => ({ ...t }))
 	}
 
-	// Filtrer les tâches par statut
 	function getTasksByStatus(status) {
 		return tasks.filter((task) => task.status === status).map((t) => ({ ...t }))
 	}
 
-	/**
-	 * Filtrer par today, tomorrow, week, month
-	 * @param {'today'|'tomorrow'|'week'|'month'} period
-	 */
 	function filterTasksByPeriod(period) {
 		return tasks
 			.filter((task) => {
@@ -179,6 +140,39 @@ const TaskManager = (() => {
 			.map((t) => ({ ...t }))
 	}
 
+	function getStats() {
+		const all = getTasks()
+		const stats = {
+			total: all.length,
+			completed: 0,
+			pending: 0,
+			inProgress: 0,
+			blocked: 0,
+			byCategory: {},
+		}
+
+		all.forEach((task) => {
+			switch (task.status) {
+				case STATUS.COMPLETED:
+					stats.completed++
+					break
+				case STATUS.IN_PROGRESS:
+					stats.inProgress++
+					break
+				case STATUS.BLOCKED:
+					stats.blocked++
+					break
+				default:
+					stats.pending++
+					break
+			}
+			stats.byCategory[task.category] =
+				(stats.byCategory[task.category] || 0) + 1
+		})
+
+		return stats
+	}
+
 	return {
 		addTask,
 		deleteTask,
@@ -190,7 +184,9 @@ const TaskManager = (() => {
 		getTasksByCategory,
 		getTasksByStatus,
 		filterTasksByPeriod,
+		getStats,
 		STATUS,
+		STATUS_LABELS, // <-- export pour l'affichage
 	}
 })()
 

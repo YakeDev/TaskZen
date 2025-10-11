@@ -8,7 +8,41 @@
 		<title>To Do List Avancee</title>
 	</head>
 	<body>
-		<div id="app"></div>
+		<div id="app">
+			<form id="taskForm">
+				<input
+					type="text"
+					id="title"
+					name="title"
+					placeholder="Titre"
+					required />
+				<textarea
+					name="description"
+					id="description"
+					placeholder="Description"></textarea>
+
+				<select name="category" id="category">
+					<option value="Par defaut">Par défaut</option>
+					<option value="Étude">Étude</option>
+					<option value="Travail">Travail</option>
+					<option value="Santé">Santé</option>
+				</select>
+
+				<input type="date" id="dueDate" name="dueDate" />
+
+				<select name="status" id="status">
+					<option value="pending">À faire</option>
+					<option value="in-progress">En cours</option>
+					<option value="blocked">Bloquée</option>
+					<option value="completed">Terminée</option>
+				</select>
+
+				<button type="submit" id="submit-btn">Ajouter</button>
+			</form>
+
+			<ul id="taskList"></ul>
+			<div id="stats"></div>
+		</div>
 		<script type="module" src="/src/main.js"></script>
 	</body>
 </html>

@@ -90,10 +90,11 @@ Si tu utilises React (optionnel) :
 const task = {
 	id: '1687349123456', // string ou number unique
 	title: 'Apprendre Promises',
+	description: 'Task description',
 	category: 'Études',
-	completed: false,
 	createdAt: '2025-10-10T12:00:00.000Z',
 	dueDate: null, // optionnel
+	status: 'Pending',
 }
 ```
 
