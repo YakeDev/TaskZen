@@ -22,7 +22,7 @@ function toDateOrNull(value) {
 
 const TaskManager = (() => {
 	const tasks = []
-	const categories = ['Par defaut', 'Étude', 'Travail', 'Santé']
+	const categories = ['Par defaut', 'Étude', 'Travail', 'Santé', 'Personnel']
 
 	// ✅ Codes internes + labels FR pour l'affichage
 	const STATUS = {
@@ -53,7 +53,7 @@ const TaskManager = (() => {
 			description,
 			category,
 			dueDate: due,
-			status, // <-- code
+			status,
 			createdAt: new Date(),
 		}
 		tasks.push(newTask)
@@ -186,7 +186,7 @@ const TaskManager = (() => {
 		filterTasksByPeriod,
 		getStats,
 		STATUS,
-		STATUS_LABELS, // <-- export pour l'affichage
+		STATUS_LABELS,
 	}
 })()
 

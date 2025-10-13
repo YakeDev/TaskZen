@@ -22,41 +22,5 @@
 		"description": "Point hebdomadaire sur l’avancement du projet",
 		"category": "Travail",
 		"dueDate": "2025-10-13"
-	},
-	{
-		"title": "Nettoyer la maison",
-		"description": "Faire le ménage complet du salon et de la cuisine",
-		"category": "Par defaut",
-		"dueDate": "2025-10-14"
-	},
-	{
-		"title": "Lire un chapitre d’algorithmique",
-		"description": "Comprendre la complexité temporelle des algorithmes",
-		"category": "Étude",
-		"dueDate": "2025-10-15"
-	},
-	{
-		"title": "Envoyer le rapport au manager",
-		"description": "Finaliser et transmettre le rapport hebdomadaire",
-		"category": "Travail",
-		"dueDate": "2025-10-16"
-	},
-	{
-		"title": "Prendre rendez-vous chez le médecin",
-		"description": "Contrôle annuel de santé",
-		"category": "Santé",
-		"dueDate": "2025-10-17"
-	},
-	{
-		"title": "Faire la sieste",
-		"description": "Petite sieste de 30 minutes après le déjeuner",
-		"category": "Santé",
-		"dueDate": "2025-10-10"
-	},
-	{
-		"title": "Planifier le week-end",
-		"description": "Préparer une sortie ou du repos",
-		"category": "Par defaut",
-		"dueDate": "2025-10-19"
 	}
 ]
