@@ -1,1 +1,36 @@
 @import 'tailwindcss';
+
+@layer base {
+	#app {
+		@apply grid gap-4 p-6 h-full;
+		grid-template-columns: minmax(0, 320px) minmax(0, 1fr) minmax(0, 360px);
+	}
+
+	#app[data-sidebar-collapsed='true'] {
+		grid-template-columns: 72px minmax(0, 1fr) minmax(0, 360px);
+	}
+}
+
+@layer components {
+	#sidebar[data-collapsed='true'] {
+		@apply px-3 py-4 bg-white shadow-sm;
+		min-width: 72px;
+		max-width: 72px;
+	}
+
+	#sidebar[data-collapsed='true'] .sidebar-header {
+		@apply justify-center;
+	}
+
+	#sidebar[data-collapsed='true'] .sidebar-title {
+		@apply hidden;
+	}
+
+	#sidebar[data-collapsed='true'] .sidebar-hideable {
+		@apply hidden;
+	}
+}
+
+@layer utilities {
+	/* reserved for future custom utilities */
+}

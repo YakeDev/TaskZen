@@ -6,7 +6,7 @@ export function getStats(tasks) {
 		completed: 0,
 		pending: 0,
 		inProgress: 0,
-		blocked: 0,
+	overdue: 0,
 		byCategory: {},
 	}
 
@@ -18,8 +18,8 @@ export function getStats(tasks) {
 			case STATUS.IN_PROGRESS:
 				stats.inProgress++
 				break
-			case STATUS.BLOCKED:
-				stats.blocked++
+		case STATUS.OVERDUE:
+			stats.overdue++
 				break
 			default:
 				stats.pending++

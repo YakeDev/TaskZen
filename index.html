@@ -7,26 +7,184 @@
 		<link href="/src/assets/styles/style.css" rel="stylesheet" />
 		<title>To Do List Avancee</title>
 	</head>
-	<body class="min-h-screen">
-		<main id="app" class="grid grid-cols-12 gap-4 p-6">
-			<header class="col-span-2 bg-gray-100 px-2 py-4 rounded-xl">
-				<h1>TaskZen</h1>
-				<nav>
-					<a href="../index.html">Tableau de bord</a>
-					<a href="./upcoming.html">A venir</a>
-					<a href="./today.html">Aujourd'hui</a>
-				</nav>
+	<body class="h-screen">
+		<main id="app" class="grid gap-4 p-2 h-full" data-sidebar-collapsed="false">
+			<!-- Sidebar -->
+			<header
+				id="sidebar"
+				class="bg-gray-50 px-4 py-6 rounded-xl h-full overflow-auto flex flex-col"
+				data-collapsed="false">
+				<div class="sidebar-header flex items-center justify-between mb-4">
+					<h1 class="text-xl font-bold sidebar-title">TaskZen</h1>
+					<button
+						id="menuToggleBtn"
+						type="button"
+						class="p-2 rounded-lg focus:outline-none hover:bg-gray-200 transition"
+						aria-label="Masquer le menu"
+						aria-controls="sidebarContent"
+						aria-expanded="true">
+						<svg
+							class="w-6 h-6"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M4 6h16M4 12h16M4 18h16" />
+						</svg>
+					</button>
+				</div>
+
+				<div
+					id="sidebarContent"
+					class="flex flex-col flex-1 overflow-auto sidebar-hideable space-y-4">
+					<div>
+						<input
+							type="text"
+							placeholder="Search"
+							class="w-full px-3 py-2 rounded-lg border border-gray-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+					</div>
+
+					<div class="space-y-2">
+						<h2 class="text-xs font-bold text-gray-500 uppercase">Tasks</h2>
+						<ul id="sidebarTaskFilters" class="space-y-2">
+							<li
+								data-view="dashboard"
+								class="flex justify-between items-center px-2 py-1 rounded text-gray-600 hover:bg-gray-200 cursor-pointer transition">
+								<span>Dashboard</span>
+								<span
+									class="bg-gray-300 rounded-full px-2 text-xs font-semibold"
+									data-count="dashboard"
+									>0</span
+								>
+							</li>
+							<li
+								data-period="upcoming"
+								class="flex justify-between items-center px-2 py-1 rounded text-gray-600 hover:bg-gray-200 cursor-pointer transition">
+								<span>Upcoming</span>
+								<span
+									class="bg-gray-300 rounded-full px-2 text-xs font-semibold"
+									data-count="upcoming"
+									>0</span
+								>
+							</li>
+							<li
+								data-period="today"
+								class="flex justify-between items-center px-2 py-1 rounded text-gray-600 hover:bg-gray-200 cursor-pointer transition">
+								<span>Today</span>
+								<span
+									class="bg-gray-300 rounded-full px-2 text-xs font-semibold"
+									data-count="today"
+									>0</span
+								>
+							</li>
+							<li
+								data-status="overdue"
+								class="flex justify-between items-center px-2 py-1 rounded text-gray-600 hover:bg-gray-200 cursor-pointer transition">
+								<span>En retard</span>
+								<span
+									class="bg-gray-300 rounded-full px-2 text-xs font-semibold"
+									data-count="overdue"
+									>0</span
+								>
+							</li>
+							<li
+								data-status="completed"
+								class="flex justify-between items-center px-2 py-1 rounded text-gray-600 hover:bg-gray-200 cursor-pointer transition">
+								<span>Terminées</span>
+								<span
+									class="bg-gray-300 rounded-full px-2 text-xs font-semibold"
+									data-count="completed"
+									>0</span
+								>
+							</li>
+						</ul>
+					</div>
+
+					<div class="space-y-2">
+						<h2 class="text-xs font-bold text-gray-500 uppercase">Catégorie</h2>
+						<ul
+							id="categoryList"
+							class="space-y-2 max-h-56 overflow-y-auto pr-1"></ul>
+						<button
+							id="addCategoryBtn"
+							type="button"
+							class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-xs font-semibold text-gray-600 hover:border-gray-400 hover:text-gray-800">
+							<span class="text-lg leading-none">+</span>
+							Créer une nouvelle catégorie
+						</button>
+					</div>
+
+					<div class="space-y-2">
+						<h2 class="text-xs font-bold text-gray-500 uppercase">Tags</h2>
+						<div id="tagList" class="flex flex-wrap gap-2"></div>
+						<form id="sidebarTagForm" class="mt-3 flex gap-2">
+							<input
+								type="text"
+								id="sidebarTagInput"
+								placeholder="Créer ou rechercher un tag"
+								class="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs text-gray-700 focus:border-amber-400 focus:outline-none" />
+							<button
+								type="submit"
+								class="rounded-lg bg-amber-400 px-3 py-2 text-xs font-semibold text-gray-900 hover:bg-amber-500">
+								Ajouter
+							</button>
+						</form>
+					</div>
+
+					<div class="mt-auto border-t pt-4 space-y-2">
+						<button
+							class="flex items-center gap-2 text-gray-700 hover:text-gray-900">
+							<svg
+								class="w-5 h-5"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 6v6l4 2" />
+							</svg>
+							Settings
+						</button>
+						<button
+							class="flex items-center gap-2 text-gray-700 hover:text-gray-900">
+							<svg
+								class="w-5 h-5"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5" />
+							</svg>
+							Sign out
+						</button>
+					</div>
+				</div>
 			</header>
-			<section class="col-span-7 px-2 py-4">
+
+			<section id="taskSection" class="p-2 h-full overflow-auto">
 				<div id="stats"></div>
-				<div>
+				<div class="pt-4 space-y-4">
+					<h2
+						id="tasksViewTitle"
+						class="text-sm font-semibold uppercase tracking-wide text-gray-600">
+						Mes tâches
+					</h2>
 					<ul id="taskList"></ul>
 				</div>
 			</section>
-			<aside class="col-span-3 bg-gray-50 p-4 rounded-xl">
-				<form id="taskForm" class="min-h-screen flex flex-col">
-					<!-- Contenu principal du formulaire -->
-					<div class="flex-grow space-y-4 p-6">
+			<aside
+				id="formAside"
+				class="bg-gray-50 p-4 rounded-xl h-full flex flex-col">
+				<form id="taskForm" class="flex flex-col h-full">
+					<div class="flex-grow space-y-4 overflow-auto p-6">
 						<h2 id="task-title" class="text-2xl font-semibold text-gray-900">
 							Nouvelle tâche
 						</h2>
@@ -127,7 +285,7 @@
 											class="block w-full py-1.5 px-3 text-base text-gray-900 focus:outline-none sm:text-sm bg-transparent">
 											<option value="pending">À faire</option>
 											<option value="in-progress">En cours</option>
-											<option value="blocked">Bloquée</option>
+											<option value="overdue">En retard</option>
 											<option value="completed">Terminée</option>
 										</select>
 									</div>
@@ -136,20 +294,28 @@
 
 							<!-- Tags -->
 							<div class="col-span-5">
-								<div
-									class="space-y-2 flex flex-row items-center justify-between gap-6">
-									<span class="block text-sm font-normal text-gray-500"
-										>Tags</span
-									>
-									<div class="flex items-center gap-3">
-										<span
-											class="rounded-sm text-sm bg-sky-100 text-sky-900 py-1 px-5">
-											Tag 1
-										</span>
+								<label class="block text-sm font-normal text-gray-500">
+									Tags
+								</label>
+								<div class="mt-2 space-y-2">
+									<div
+										id="selectedTags"
+										class="flex flex-wrap gap-2 text-sm text-gray-600"></div>
+									<div class="flex flex-col gap-2 sm:flex-row">
+										<div class="relative w-full">
+											<input
+												type="text"
+												id="tagInput"
+												list="tagOptions"
+												placeholder="Tapez un tag puis Entrée"
+												class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-amber-400 focus:outline-none" />
+											<datalist id="tagOptions"></datalist>
+										</div>
 										<button
 											type="button"
-											class="rounded-sm text-sm py-1 px-5 text-gray-700 outline outline-1 -outline-offset-1 outline-gray-200 hover:bg-gray-50 active:bg-gray-100">
-											+ Add Tag
+											id="addTagBtn"
+											class="rounded-md bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-300">
+											Ajouter
 										</button>
 									</div>
 								</div>
@@ -159,7 +325,7 @@
 
 					<!-- Footer collé en bas -->
 					<div
-						class="sticky bottom-0 pt-4 pb-6 flex flex-col sm:flex-row gap-4 px-6">
+						class="sticky bottom-0 pt-4 pb-6 flex flex-col sm:flex-row gap-4 px-6 bg-gray-50">
 						<button
 							type="submit"
 							id="submit-btn"
@@ -171,8 +337,5 @@
 			</aside>
 		</main>
 		<script type="module" src="/src/main.js"></script>
-		<script
-			type="module"
-			src="https://cdn.jsdelivr.net/npm/lucide@0.274.0/dist/lucide.min.js"></script>
 	</body>
 </html>

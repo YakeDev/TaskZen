@@ -2,9 +2,16 @@ import TaskManager from './taskManager.js'
 import tasksData from './data/tasks.json'
 import renderTasks from './ui.js'
 
-tasksData.forEach((task) => {
-	TaskManager.addTask(task.title, task.description, task.category, task.dueDate)
-})
+if (!TaskManager.hasTasks()) {
+	tasksData.forEach((task) => {
+		TaskManager.addTask(
+			task.title,
+			task.description,
+			task.category,
+			task.dueDate
+		)
+	})
+}
 
 // Initialisation
 renderTasks()

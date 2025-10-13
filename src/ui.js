@@ -1,5 +1,17 @@
 // ui.js
 import TaskManager from './taskManager.js'
+import {
+	Calendar,
+	CheckCircle2,
+	CircleDot,
+	ClipboardList,
+	FolderClosed,
+	ListTodo,
+	OctagonAlert,
+	Pencil,
+	Timer,
+	Trash2,
+} from 'lucide'
 
 const form = document.getElementById('taskForm')
 const titleInput = document.getElementById('title')
@@ -8,212 +20,874 @@ const categorySelect = document.getElementById('category')
 const statusSelect = document.getElementById('status')
 const dateInput = document.getElementById('dueDate')
 const submitBtn = document.getElementById('submit-btn')
+const taskTitle = document.getElementById('task-title')
 
 const taskList = document.getElementById('taskList')
 const statsContainer = document.getElementById('stats')
 
+const sidebarTaskFilters = document.getElementById('sidebarTaskFilters')
+const categoryListEl = document.getElementById('categoryList')
+const addCategoryBtn = document.getElementById('addCategoryBtn')
+const tagListEl = document.getElementById('tagList')
+const sidebarTagForm = document.getElementById('sidebarTagForm')
+const sidebarTagInput = document.getElementById('sidebarTagInput')
+const menuToggleBtn = document.getElementById('menuToggleBtn')
+const appRoot = document.getElementById('app')
+
+const sidebar = document.getElementById('sidebar')
+const sidebarContent = document.getElementById('sidebarContent')
+const taskSection = document.getElementById('taskSection')
+const formAside = document.getElementById('formAside')
+const tasksViewTitle = document.getElementById('tasksViewTitle')
+
+const selectedTagsContainer = document.getElementById('selectedTags')
+const tagInput = document.getElementById('tagInput')
+const addTagBtn = document.getElementById('addTagBtn')
+const tagOptionsEl = document.getElementById('tagOptions')
+
+const STATUS_BADGES = {
+	pending: 'bg-gray-100 text-gray-700',
+	'in-progress': 'bg-blue-100 text-blue-700',
+	overdue: 'bg-red-100 text-red-700',
+	completed: 'bg-emerald-100 text-emerald-700',
+}
+
+const CATEGORY_STYLES = [
+	'bg-red-100 text-red-700',
+	'bg-blue-100 text-blue-700',
+	'bg-yellow-100 text-yellow-700',
+	'bg-green-100 text-green-700',
+	'bg-purple-100 text-purple-700',
+	'bg-sky-100 text-sky-700',
+]
+
+const ENTITY_MAP = {
+	'&': '&amp;',
+	'<': '&lt;',
+	'>': '&gt;',
+	'"': '&quot;',
+	"'": '&#39;',
+}
+
+const FILTER_TYPES = {
+	ALL: 'all',
+	PERIOD: 'period',
+	STATUS: 'status',
+}
+
+const state = {
+	filter: { type: FILTER_TYPES.ALL, value: null },
+}
+
 let editingTaskId = null
+let currentTags = []
+let isSidebarCollapsed = false
 
-if (form) {
-	form.addEventListener('submit', (e) => {
-		e.preventDefault()
+const renderIcon = (icon, options = {}) => {
+	if (!icon) return ''
+	const {
+		size = 20,
+		strokeWidth = 1.75,
+		className = '',
+	} = options
+	const baseAttrs = [
+		`xmlns="http://www.w3.org/2000/svg"`,
+		`width="${size}"`,
+		`height="${size}"`,
+		`viewBox="0 0 24 24"`,
+		`fill="none"`,
+		`stroke="currentColor"`,
+		`stroke-width="${strokeWidth}"`,
+		`stroke-linecap="round"`,
+		`stroke-linejoin="round"`,
+		`aria-hidden="true"`,
+		`focusable="false"`,
+	]
+	if (className) {
+		baseAttrs.push(`class="${className}"`)
+	}
 
-		const title = titleInput.value.trim()
-		const description = descInput.value.trim()
-		const category = categorySelect.value
-		const status = statusSelect.value
-		const dueDate = dateInput.value || null
+	const children = icon
+		.map(([tag, attrs]) => {
+			const attribs = Object.entries(attrs)
+				.map(([key, value]) => `${key}="${value}"`)
+				.join(' ')
+			return `<${tag} ${attribs} />`
+		})
+		.join('')
 
-		if (!title) return
+	return `<svg ${baseAttrs.join(' ')}>${children}</svg>`
+}
 
-		if (editingTaskId) {
-			TaskManager.updateTask(editingTaskId, {
-				title,
-				description,
-				category,
-				status,
-				dueDate,
-			})
-			editingTaskId = null
-			submitBtn.textContent = 'Ajouter'
-		} else {
-			TaskManager.addTask(title, description, category, dueDate, status)
-		}
+const getCategoryStyle = (category) => {
+	const categories = TaskManager.getCategories()
+	const index = categories.findIndex(
+		(item) => item.toLowerCase() === category.toLowerCase()
+	)
+	const baseIndex = index !== -1 ? index : categories.length
+	return CATEGORY_STYLES[baseIndex % CATEGORY_STYLES.length]
+}
 
-		form.reset()
-		renderTasks()
+const escapeHtml = (value) =>
+	String(value ?? '')
+		.split('')
+		.map((char) => ENTITY_MAP[char] ?? char)
+		.join('')
+
+const normalizeTag = (value) => {
+	if (typeof value !== 'string') return ''
+	return value.trim()
+}
+
+const dedupeTags = (tags = []) => {
+	const unique = new Set()
+	tags.forEach((tag) => {
+		const normalized = normalizeTag(tag)
+		if (normalized) unique.add(normalized)
+	})
+	return [...unique]
+}
+
+const setSidebarCollapsed = (collapsed) => {
+	isSidebarCollapsed = collapsed
+	if (sidebar) {
+		sidebar.dataset.collapsed = collapsed ? 'true' : 'false'
+	}
+	if (sidebarContent) {
+		sidebarContent.classList.toggle('hidden', collapsed)
+	}
+	if (appRoot) {
+		appRoot.dataset.sidebarCollapsed = collapsed ? 'true' : 'false'
+	}
+	if (menuToggleBtn) {
+		menuToggleBtn.setAttribute('aria-expanded', String(!collapsed))
+		menuToggleBtn.setAttribute(
+			'aria-label',
+			collapsed ? 'Afficher le menu' : 'Masquer le menu'
+		)
+	}
+}
+
+const isCompleted = (task) => task.status === TaskManager.STATUS.COMPLETED
+const excludeCompletedTasks = (tasks = []) =>
+	tasks.filter((task) => !isCompleted(task))
+
+const formatDate = (value) => {
+	if (!value) return 'Aucune'
+	const date = value instanceof Date ? value : new Date(value)
+	return Number.isNaN(date.getTime())
+		? 'Aucune'
+		: date.toLocaleDateString('fr-FR', {
+				day: '2-digit',
+				month: 'short',
+				year: 'numeric',
+		  })
+}
+
+const setCurrentTags = (tags) => {
+	currentTags = dedupeTags(tags)
+	renderSelectedTags()
+}
+
+const renderSelectedTags = () => {
+	if (!selectedTagsContainer) return
+	selectedTagsContainer.innerHTML = ''
+
+	if (!currentTags.length) {
+		const placeholder = document.createElement('span')
+		placeholder.className = 'text-xs text-gray-400'
+		placeholder.textContent = 'Aucun tag sélectionné'
+		selectedTagsContainer.appendChild(placeholder)
+		return
+	}
+
+	currentTags.forEach((tag) => {
+		const capsule = document.createElement('span')
+		capsule.className =
+			'inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700'
+
+		const text = document.createElement('span')
+		text.textContent = tag
+
+		const removeBtn = document.createElement('button')
+		removeBtn.type = 'button'
+		removeBtn.dataset.removeTag = tag
+		removeBtn.className =
+			'rounded-full bg-white/60 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 hover:bg-white hover:text-amber-700'
+		removeBtn.textContent = '×'
+
+		capsule.append(text, removeBtn)
+		selectedTagsContainer.appendChild(capsule)
 	})
 }
 
-function renderTasks() {
-	taskList.innerHTML = ''
-	const tasks = TaskManager.getTasks()
-
-	tasks.forEach((task) => {
-		const li = document.createElement('li')
-		li.className = 'task hover:bg-gray-50 cursor-pointer'
-		li.dataset.id = task.id // ✅ stocke l'id sur le <li>
-
-		li.innerHTML = `
-  <div class="flex justify-between items-center border-gray-200  pt-2 px-3">
-    <!-- Titre et checkbox -->
-    <div class="flex items-center gap-3">
-      <input
-        type="checkbox"
-        class="check-completed size-3 accent-amber-400"
-        data-id="${task.id}"
-        ${task.status === 'completed' ? 'checked' : ''}
-      />
-      <h3 class="text-base font-semibold ${
-				task.status === 'completed'
-					? 'line-through text-gray-400'
-					: 'text-gray-700'
-			}">
-        ${task.title}
-      </h3>
-    </div>
-
-    <!-- Boutons -->
-    <div class="flex gap-2">
-      <button
-        data-id="${task.id}"
-        class="edit-btn rounded-lg text-base p-1 font-normal text-gray-700 cursor-pointer"
-      >
-			<svg class='h-4' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
-  <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" />
-  <path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" />
-</svg>
-
-      </button>
-      <button
-        data-id="${task.id}"
-        class="delete-btn text-red-500 hover:text-red-600 p-1 cursor-pointer"
-      >
-        <svg class='h-4' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
-  <path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />
-</svg>
-
-      </button>
-    </div>
-  </div>
-  
-  <!-- Infos Catégorie | Date | Statut | Description-->
-  <div class="px-4 pb-2 flex items-center text-xs text-gray-500 divide-x divide-gray-300 ">
-	<div class="flex items-center px-2 col-span-2">
-      <svg class='h-4 pr-1' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
-  <path fill-rule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75Z" clip-rule="evenodd" />
-</svg>
- ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Aucune'}
-    </div>
-	<div class="flex items-center px-2 col-span-2">
-      <svg class='h-4 pr-1' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
-  <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
-</svg>
-
-			<span> ${TaskManager.STATUS_LABELS[task.status]}</span>
-    </div>
-    <div class="flex items-center px-2 col-span-2">
-      <strong><svg class='h-4 pr-1' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
-  <path d="M5.566 4.657A4.505 4.505 0 0 1 6.75 4.5h10.5c.41 0 .806.055 1.183.157A3 3 0 0 0 15.75 3h-7.5a3 3 0 0 0-2.684 1.657ZM2.25 12a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3v-6ZM5.25 7.5c-.41 0-.806.055-1.184.157A3 3 0 0 1 6.75 6h10.5a3 3 0 0 1 2.683 1.657A4.505 4.505 0 0 0 18.75 7.5H5.25Z" />
-</svg>
-</strong> ${task.category}
-    </div>
-    <div class="flex items-center px-2 col-span-6">
-      
-    <svg class='h-4 pr-1' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
-  <path fill-rule="evenodd" d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625ZM7.5 15a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 7.5 15Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H8.25Z" clip-rule="evenodd" />
-  <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
-</svg> <p class="mt-2 text-gray-600 line-clamp-1"> ${
-			task.description || '<em>(Aucune description)</em>'
-		}
-  </p>
-    </div>
-    
-    
-  </div>
-	<div class=' border-b border-gray-100'></div>
-`
-
-		taskList.appendChild(li)
+const renderTagOptions = () => {
+	if (!tagOptionsEl) return
+	tagOptionsEl.innerHTML = ''
+	const tags = TaskManager.getTags()
+	const fragment = document.createDocumentFragment()
+	tags.forEach((tag) => {
+		const option = document.createElement('option')
+		option.value = tag
+		fragment.appendChild(option)
 	})
+	tagOptionsEl.appendChild(fragment)
+}
+
+const renderCategoryOptions = (preferredValue) => {
+	if (!categorySelect) return
+	const categories = TaskManager.getCategories()
+	const currentValue =
+		preferredValue && categories.includes(preferredValue)
+			? preferredValue
+			: categorySelect.value
+	const fragment = document.createDocumentFragment()
+
+	categories.forEach((category) => {
+		const option = document.createElement('option')
+		option.value = category
+		option.textContent = category
+		fragment.appendChild(option)
+	})
+
+	categorySelect.innerHTML = ''
+	categorySelect.appendChild(fragment)
+	categorySelect.value = categories.includes(currentValue)
+		? currentValue
+		: categories[0]
+}
+
+function updateFilterIndicators() {
+	if (!sidebarTaskFilters) return
+	sidebarTaskFilters
+		.querySelectorAll('[data-view], [data-period], [data-status]')
+		.forEach((item) => {
+			const view = item.dataset.view
+			const period = item.dataset.period
+			const status = item.dataset.status
+			let isActive = false
+			if (view === 'dashboard') {
+				isActive = state.filter.type === FILTER_TYPES.ALL
+			} else if (period) {
+				isActive =
+					state.filter.type === FILTER_TYPES.PERIOD &&
+					state.filter.value === period
+			} else if (status) {
+				isActive =
+					state.filter.type === FILTER_TYPES.STATUS &&
+					state.filter.value === status
+			}
+			item.classList.toggle('bg-amber-100', isActive)
+			item.classList.toggle('text-amber-700', isActive)
+			item.classList.toggle('font-semibold', isActive)
+			if (isActive) {
+				item.setAttribute('aria-current', 'page')
+			} else {
+				item.removeAttribute('aria-current')
+			}
+		})
+}
+
+const renderSidebar = () => {
+	const stats = TaskManager.getStats()
+
+	const todayActiveTasks = excludeCompletedTasks(
+		TaskManager.filterTasksByPeriod('today')
+	)
+	const upcomingActiveTasks = excludeCompletedTasks(
+		TaskManager.filterTasksByPeriod('upcoming')
+	)
+	const completedTasksCount = TaskManager.getTasksByStatus(
+		TaskManager.STATUS.COMPLETED
+	).length
+	const overdueTasksCount = TaskManager.getTasksByStatus(
+		TaskManager.STATUS.OVERDUE
+	).length
+	const dashboardTasksCount = excludeCompletedTasks(TaskManager.getTasks()).length
+
+	if (sidebarTaskFilters) {
+		const counts = {
+			dashboard: dashboardTasksCount,
+			upcoming: upcomingActiveTasks.length,
+			today: todayActiveTasks.length,
+			overdue: overdueTasksCount,
+			completed: completedTasksCount,
+		}
+		sidebarTaskFilters
+			.querySelectorAll('[data-count]')
+			.forEach((badge) => {
+				const key = badge.dataset.count
+				if (counts[key] !== undefined) {
+					badge.textContent = counts[key]
+				}
+			})
+	}
+
+	if (categoryListEl) {
+		categoryListEl.innerHTML = ''
+		const categories = TaskManager.getCategories()
+		if (!categories.length) {
+			const empty = document.createElement('li')
+			empty.className = 'text-xs text-gray-400'
+			empty.textContent = 'Aucune catégorie'
+			categoryListEl.appendChild(empty)
+		} else {
+			categories.forEach((category) => {
+				const li = document.createElement('li')
+				li.className = `flex items-center justify-between rounded px-3 py-2 text-xs font-medium ${getCategoryStyle(
+					category
+				)}`
+
+				const name = document.createElement('span')
+				name.textContent = category
+
+				const count = document.createElement('span')
+				count.className =
+					'rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-semibold text-gray-700'
+				count.textContent = stats.byCategory[category] ?? 0
+
+				li.append(name, count)
+				categoryListEl.appendChild(li)
+			})
+		}
+	}
+
+	if (tagListEl) {
+		tagListEl.innerHTML = ''
+		const tags = TaskManager.getTags()
+		if (!tags.length) {
+			const empty = document.createElement('p')
+			empty.className = 'text-xs text-gray-400'
+			empty.textContent = 'Aucun tag pour le moment'
+			tagListEl.appendChild(empty)
+		} else {
+			tags.forEach((tag) => {
+				const button = document.createElement('button')
+				button.type = 'button'
+				button.dataset.tag = tag
+				button.className =
+					'rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 transition hover:bg-amber-100 hover:text-amber-700'
+				button.textContent = tag
+				tagListEl.appendChild(button)
+			})
+		}
+	}
+
+	renderTagOptions()
+	renderCategoryOptions(categorySelect?.value)
+	updateFilterIndicators()
+}
+
+const renderStats = () => {
+	if (!statsContainer) return
+	if (state.filter.type !== FILTER_TYPES.ALL) {
+		statsContainer.innerHTML = ''
+		statsContainer.classList.add('hidden')
+		return
+	}
+	statsContainer.classList.remove('hidden')
+	const stats = TaskManager.getStats()
+	const completionRate = stats.total
+		? Math.round((stats.completed / stats.total) * 100)
+		: 0
+
+	const summaryCards = [
+		{
+			key: 'total',
+			label: 'Total',
+			icon: ClipboardList,
+			classes: 'bg-amber-50 text-amber-600',
+		},
+		{
+			key: 'pending',
+			label: 'À faire',
+			icon: ListTodo,
+			classes: 'bg-sky-50 text-sky-600',
+		},
+		{
+			key: 'inProgress',
+			label: 'En cours',
+			icon: Timer,
+			classes: 'bg-indigo-50 text-indigo-600',
+		},
+	{
+		key: 'overdue',
+		label: 'En retard',
+		icon: OctagonAlert,
+		classes: 'bg-rose-50 text-rose-600',
+	},
+		{
+			key: 'completed',
+			label: 'Terminées',
+			icon: CheckCircle2,
+			classes: 'bg-emerald-50 text-emerald-600',
+		},
+	]
+
+	const renderSummaryCard = ({ key, label, icon, classes }) => `
+			<div class="rounded-xl bg-white p-4 shadow-sm">
+				<div class="flex items-center gap-3">
+					<span class="flex h-10 w-10 items-center justify-center rounded-full ${classes}">
+						${renderIcon(icon, { size: 20 })}
+					</span>
+					<div>
+						<p class="text-xs font-medium uppercase tracking-wide text-gray-400">
+							${label}
+						</p>
+						<p class="text-2xl font-semibold text-gray-800">
+							${stats[key] ?? 0}
+						</p>
+					</div>
+				</div>
+			</div>
+		`
+
+	const topRowMarkup = summaryCards
+		.slice(0, 3)
+		.map((card) => renderSummaryCard(card))
+		.join('')
+	const bottomRowMarkup = summaryCards
+		.slice(3)
+		.map((card) => renderSummaryCard(card))
+		.join('')
+
+	const cardsMarkup = `
+		<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+			${topRowMarkup}
+		</div>
+		<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+			${bottomRowMarkup}
+		</div>
+	`
+
+	const categoryMarkup = Object.entries(stats.byCategory).length
+		? Object.entries(stats.byCategory)
+				.map(
+					([category, count]) => `
+				<div class="flex items-center justify-between rounded-lg border border-gray-100 bg-white px-4 py-3 shadow-sm">
+					<span class="text-sm font-medium text-gray-700">${escapeHtml(category)}</span>
+					<span class="text-sm font-semibold text-gray-900">${count}</span>
+				</div>
+			`
+				)
+				.join('')
+		: '<p class="text-sm text-gray-400">Aucune tâche enregistrée.</p>'
+
+	statsContainer.innerHTML = `
+			<section class="space-y-6">
+			<div class="space-y-4">
+				${cardsMarkup}
+			</div>
+			<div class="rounded-xl border border-dashed border-gray-200 bg-white p-5 shadow-sm">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-sm font-semibold text-gray-700">
+							Taux d'accomplissement
+						</p>
+						<p class="text-xs text-gray-500">
+							${completionRate}% des tâches sont terminées
+						</p>
+					</div>
+					<span class="text-lg font-bold text-emerald-500">${completionRate}%</span>
+				</div>
+				<div class="mt-3 h-2 rounded-full bg-gray-100">
+					<div
+						class="h-full rounded-full bg-emerald-400 transition-all"
+						style="width: ${completionRate}%"
+					></div>
+				</div>
+			</div>
+			<div>
+				<h4 class="mb-3 text-sm font-semibold text-gray-600">
+					Répartition par catégorie
+				</h4>
+				<div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+					${categoryMarkup}
+				</div>
+			</div>
+		</section>
+	`
+}
+
+const updateViewTitle = () => {
+	if (!tasksViewTitle) return
+	let title = 'Mes tâches'
+	const { type, value } = state.filter
+	if (type === FILTER_TYPES.PERIOD) {
+		if (value === 'today') title = 'Tâches du jour'
+		else if (value === 'upcoming') title = 'Tâches à venir'
+	} else if (type === FILTER_TYPES.STATUS) {
+		if (value === TaskManager.STATUS.COMPLETED) title = 'Tâches terminées'
+		else if (value === TaskManager.STATUS.OVERDUE) title = 'Tâches en retard'
+	}
+	tasksViewTitle.textContent = title
+}
+
+const createTaskMarkup = (task) => {
+	const statusLabel = TaskManager.STATUS_LABELS[task.status] ?? task.status
+	const statusClass = STATUS_BADGES[task.status] ?? STATUS_BADGES.pending
+	const dueDate = formatDate(task.dueDate)
+	const description = task.description
+		? `<p class="mt-2 line-clamp-2 text-sm text-gray-600">${escapeHtml(
+				task.description
+		  )}</p>`
+		: '<p class="mt-2 text-sm italic text-gray-400">(Aucune description)</p>'
+
+	const tags =
+		task.tags && task.tags.length
+			? `<div class="mt-4 flex flex-wrap gap-2">
+					${task.tags
+						.map(
+							(tag) => `
+							<span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+								${escapeHtml(tag)}
+							</span>`
+						)
+						.join('')}
+				</div>`
+			: ''
+
+	return `
+		<article class="group rounded-xl border border-gray-200 bg-white p-4 mb-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+			<div class="flex items-start justify-between gap-4">
+				<div class="flex items-start gap-3">
+					<input
+						type="checkbox"
+						class="check-completed mt-1 size-4 cursor-pointer accent-amber-400"
+						data-id="${task.id}"
+						${task.status === TaskManager.STATUS.COMPLETED ? 'checked' : ''}
+					/>
+					<div>
+						<h3 class="text-lg font-semibold ${
+							task.status === TaskManager.STATUS.COMPLETED
+								? 'text-gray-400 line-through'
+								: 'text-gray-800'
+						}">
+							${escapeHtml(task.title)}
+						</h3>
+						${description}
+					</div>
+				</div>
+					<div class="flex gap-1">
+						<button
+							type="button"
+							data-id="${task.id}"
+							class="edit-btn rounded-md p-2 text-sm text-gray-500 transition hover:bg-amber-50 hover:text-amber-600"
+							aria-label="Éditer la tâche"
+						>
+							${renderIcon(Pencil, { size: 18, className: 'shrink-0' })}
+						</button>
+						<button
+							type="button"
+							data-id="${task.id}"
+							class="delete-btn rounded-md p-2 text-sm text-red-500 transition hover:bg-red-50 hover:text-red-600"
+							aria-label="Supprimer la tâche"
+						>
+							${renderIcon(Trash2, { size: 18, className: 'shrink-0' })}
+						</button>
+					</div>
+				</div>
+				<div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-500">
+					<span class="inline-flex items-center gap-1">
+						${renderIcon(Calendar, { size: 16 })}
+						<span>${dueDate}</span>
+					</span>
+					<span class="inline-flex items-center gap-2">
+						<span class="inline-flex items-center gap-1 rounded-full px-2 py-1 ${statusClass}">
+							${renderIcon(CircleDot, { size: 12 })}
+							<span class="font-medium">${statusLabel}</span>
+						</span>
+					</span>
+					<span class="inline-flex items-center gap-1">
+						${renderIcon(FolderClosed, { size: 16 })}
+						<span>${escapeHtml(task.category)}</span>
+					</span>
+				</div>
+			${tags}
+		</article>
+	`
+}
+
+const getVisibleTasks = () => {
+	const { type, value } = state.filter
+	if (type === FILTER_TYPES.STATUS && value) {
+		return TaskManager.getTasksByStatus(value)
+	}
+
+	if (type === FILTER_TYPES.PERIOD && value) {
+		const tasks = TaskManager.filterTasksByPeriod(value)
+		return excludeCompletedTasks(tasks)
+	}
+
+	return excludeCompletedTasks(TaskManager.getTasks())
+}
+
+const renderTasks = () => {
+	if (!taskList) return
+	const tasks = getVisibleTasks().sort((a, b) => {
+		const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity
+		const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity
+		if (aDate !== bDate) return aDate - bDate
+		const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0
+		const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0
+		return aCreated - bCreated
+	})
+
+	taskList.innerHTML = ''
+
+	if (!tasks.length) {
+		const li = document.createElement('li')
+		li.className =
+			'rounded-xl border border-dashed border-gray-200 bg-white p-6 text-center text-sm text-gray-500'
+		li.innerHTML =
+			'Aucune tâche pour le moment. Ajoutez-en une pour commencer !'
+		taskList.appendChild(li)
+	} else {
+		tasks.forEach((task) => {
+			const li = document.createElement('li')
+			li.className = 'task cursor-pointer'
+			li.dataset.id = task.id
+			li.innerHTML = createTaskMarkup(task)
+			taskList.appendChild(li)
+		})
+	}
 
 	renderStats()
+	renderSidebar()
+	updateViewTitle()
 }
 
-// Délégation "click" : Edit/Supprimer OU clic sur le <li> pour éditer
-if (taskList) {
-	taskList.addEventListener('click', (e) => {
-		const li = e.target.closest('li.task')
-		if (!li) return
-		const id = li.dataset.id
-
-		// Si on clique sur la checkbox -> ne pas ouvrir l'édition
-		if (e.target.classList.contains('check-completed')) return
-
-		// Si on clique sur les boutons, on gère normalement
-		if (e.target.classList.contains('edit-btn')) {
-			handleEditById(id)
-			return
-		}
-		if (e.target.classList.contains('delete-btn')) {
-			handleDeleteById(id)
-			return
-		}
-
-		// Sinon: clic "vide" dans le <li> -> ouvrir l'édition
-		handleEditById(id)
-	})
+function setFilter(type, value) {
+	const same = state.filter.type === type && state.filter.value === value
+	state.filter = same
+		? { type: FILTER_TYPES.ALL, value: null }
+		: { type, value }
+	renderTasks()
 }
 
-// Délégation "change" pour la checkbox (reste inchangé)
-taskList.addEventListener('change', (e) => {
-	if (e.target.classList.contains('check-completed')) {
-		const id = e.target.dataset.id || e.target.closest('li.task')?.dataset.id
-		if (id) handleCompletedById(id)
-	}
-})
+const resetFormState = () => {
+	if (!form) return
+	form.reset()
+	setCurrentTags([])
+	editingTaskId = null
+	if (submitBtn) submitBtn.textContent = 'Ajouter'
+	if (taskTitle) taskTitle.textContent = 'Nouvelle tâche'
+	renderCategoryOptions(TaskManager.getCategories()[0])
+}
 
-function handleEditById(id) {
-	const task = TaskManager.getTasks().find((t) => t.id === id)
+const handleEditById = (id) => {
+	const task = TaskManager.getTasks().find((item) => item.id === id)
 	if (!task) return
 
-	titleInput.value = task.title
-	descInput.value = task.description
-	categorySelect.value = task.category
-	statusSelect.value = task.status
-	dateInput.value = task.dueDate
-		? new Date(task.dueDate).toISOString().split('T')[0]
-		: ''
+	if (titleInput) titleInput.value = task.title
+	if (descInput) descInput.value = task.description
+	renderCategoryOptions(task.category)
+	if (categorySelect) categorySelect.value = task.category
+	if (statusSelect) statusSelect.value = task.status
+	if (dateInput) {
+		dateInput.value = task.dueDate
+			? new Date(task.dueDate).toISOString().split('T')[0]
+			: ''
+	}
+
+	setCurrentTags(task.tags || [])
 
 	editingTaskId = id
-	submitBtn.textContent = 'Mettre à jour'
+	if (submitBtn) submitBtn.textContent = 'Mettre à jour'
+	if (taskTitle) taskTitle.textContent = 'Modifier la tâche'
 }
 
-function handleCompletedById(id) {
+const handleCompletedById = (id) => {
 	TaskManager.toggleComplete(id)
 	renderTasks()
 }
 
-function handleDeleteById(id) {
+const handleDeleteById = (id) => {
 	TaskManager.deleteTask(id)
+	if (editingTaskId === id) {
+		resetFormState()
+	}
 	renderTasks()
 }
 
-function renderStats() {
-	const stats = TaskManager.getStats()
-	statsContainer.innerHTML = `
-    <p><strong>Total :</strong> ${stats.total}</p>
-    <p><strong>A faire :</strong> ${stats.pending}</p>
-    <p><strong>En cours :</strong> ${stats.inProgress}</p>
-    <p><strong>Bloquées :</strong> ${stats.blocked}</p>
-    <p><strong>Terminées :</strong> ${stats.completed}</p>
-    <h4>Par catégorie :</h4>
-    <ul>
-      ${Object.entries(stats.byCategory)
-				.map(([cat, count]) => `<li>${cat} : ${count}</li>`)
-				.join('')}
-    </ul>
-  `
+const addTagToCurrent = (tag) => {
+	const normalized = normalizeTag(tag)
+	if (!normalized) return null
+	if (!currentTags.includes(normalized)) {
+		setCurrentTags([...currentTags, normalized])
+	}
+	return normalized
 }
+
+const addTagFromInput = () => {
+	if (!tagInput) return
+	const normalized = addTagToCurrent(tagInput.value)
+	if (normalized) {
+		TaskManager.registerTag(normalized)
+	}
+	tagInput.value = ''
+	renderSidebar()
+}
+
+if (form) {
+	form.addEventListener('submit', (event) => {
+		event.preventDefault()
+
+		const title = titleInput?.value.trim()
+		if (!title) return
+
+		const payload = {
+			title,
+			description: descInput?.value.trim() ?? '',
+			category: categorySelect?.value ?? '',
+			status: statusSelect?.value ?? TaskManager.STATUS.PENDING,
+			dueDate: dateInput?.value || null,
+			tags: [...currentTags],
+		}
+
+		if (editingTaskId) {
+			TaskManager.updateTask(editingTaskId, payload)
+		} else {
+			TaskManager.addTask(
+				payload.title,
+				payload.description,
+				payload.category,
+				payload.dueDate,
+				payload.status,
+				payload.tags
+			)
+		}
+
+		resetFormState()
+		renderTasks()
+	})
+}
+
+if (taskList) {
+	taskList.addEventListener('click', (event) => {
+		const editBtn = event.target.closest('.edit-btn')
+		const deleteBtn = event.target.closest('.delete-btn')
+		const checkbox = event.target.closest('.check-completed')
+		const li = event.target.closest('li.task')
+		if (!li) return
+
+		const { id } = li.dataset
+		if (!id) return
+
+		if (checkbox) return
+		if (editBtn) {
+			handleEditById(id)
+			return
+		}
+		if (deleteBtn) {
+			handleDeleteById(id)
+			return
+		}
+		handleEditById(id)
+	})
+
+	taskList.addEventListener('change', (event) => {
+		const checkbox = event.target.closest('.check-completed')
+		if (!checkbox) return
+		const id = checkbox.dataset.id || checkbox.closest('li.task')?.dataset.id
+		if (id) handleCompletedById(id)
+	})
+}
+
+if (sidebarTaskFilters) {
+	sidebarTaskFilters.addEventListener('click', (event) => {
+	const item = event.target.closest('[data-view], [data-period], [data-status]')
+	if (!item) return
+	const { view } = item.dataset
+	const { period } = item.dataset
+	const { status } = item.dataset
+	if (view === 'dashboard') {
+		setFilter(FILTER_TYPES.ALL, null)
+		return
+	}
+	if (period) {
+			setFilter(FILTER_TYPES.PERIOD, period)
+			return
+		}
+		if (status) {
+			setFilter(FILTER_TYPES.STATUS, status)
+		}
+	})
+}
+
+if (selectedTagsContainer) {
+	selectedTagsContainer.addEventListener('click', (event) => {
+		const button = event.target.closest('button[data-remove-tag]')
+		if (!button) return
+		const { removeTag } = button.dataset
+		if (!removeTag) return
+		currentTags = currentTags.filter((tag) => tag !== removeTag)
+		renderSelectedTags()
+	})
+}
+
+if (tagListEl) {
+	tagListEl.addEventListener('click', (event) => {
+		const button = event.target.closest('button[data-tag]')
+		if (!button) return
+		const { tag } = button.dataset
+		if (!tag) return
+		addTagToCurrent(tag)
+	})
+}
+
+if (addTagBtn) {
+	addTagBtn.addEventListener('click', (event) => {
+		event.preventDefault()
+		addTagFromInput()
+	})
+}
+
+if (tagInput) {
+	tagInput.addEventListener('keydown', (event) => {
+		if (event.key === 'Enter') {
+			event.preventDefault()
+			addTagFromInput()
+		}
+	})
+}
+
+if (sidebarTagForm) {
+	sidebarTagForm.addEventListener('submit', (event) => {
+		event.preventDefault()
+		const value = normalizeTag(sidebarTagInput?.value ?? '')
+		if (!value) return
+		const registered = TaskManager.registerTag(value)
+		sidebarTagInput.value = ''
+		renderSidebar()
+		if (registered) {
+			addTagToCurrent(registered)
+		}
+	})
+}
+
+if (addCategoryBtn) {
+	addCategoryBtn.addEventListener('click', () => {
+		const name = normalizeTag(
+			window.prompt('Nom de la nouvelle catégorie ?') ?? ''
+		)
+		if (!name) return
+		TaskManager.addCategory(name)
+		renderCategoryOptions(name)
+		if (categorySelect) categorySelect.value = name
+		renderSidebar()
+	})
+}
+
+if (menuToggleBtn) {
+	menuToggleBtn.addEventListener('click', () => {
+		setSidebarCollapsed(!isSidebarCollapsed)
+	})
+}
+
+setSidebarCollapsed(false)
+setCurrentTags([])
+renderCategoryOptions(TaskManager.getCategories()[0])
+renderSidebar()
 
 export default renderTasks
