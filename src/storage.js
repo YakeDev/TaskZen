@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
 	tasks: 'todo:list:tasks',
 	categories: 'todo:list:categories',
 	tags: 'todo:list:tags',
+	categoryIcons: 'todo:list:category-icons',
 }
 
 const memoryStore = {}
@@ -50,6 +51,18 @@ const safeParseArray = (raw) => {
 	}
 }
 
+const safeParseObject = (raw) => {
+	if (!raw) return {}
+	try {
+		const parsed = JSON.parse(raw)
+		return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+			? parsed
+			: {}
+	} catch {
+		return {}
+	}
+}
+
 export const loadTasks = () => safeParseArray(read(STORAGE_KEYS.tasks))
 export const saveTasks = (tasks) =>
 	write(STORAGE_KEYS.tasks, JSON.stringify(tasks || []))
@@ -62,3 +75,8 @@ export const saveCategories = (categories) =>
 export const loadTags = () => safeParseArray(read(STORAGE_KEYS.tags))
 export const saveTags = (tags) =>
 	write(STORAGE_KEYS.tags, JSON.stringify(tags || []))
+
+export const loadCategoryIcons = () =>
+	safeParseObject(read(STORAGE_KEYS.categoryIcons))
+export const saveCategoryIcons = (icons) =>
+	write(STORAGE_KEYS.categoryIcons, JSON.stringify(icons || {}))

@@ -19,6 +19,8 @@ import {
 	saveCategories,
 	loadTags,
 	saveTags,
+	loadCategoryIcons,
+	saveCategoryIcons,
 } from './storage.js'
 
 function toDateOrNull(value) {
@@ -35,10 +37,26 @@ function toDateOrNull(value) {
 const TaskManager = (() => {
 	const DEFAULT_CATEGORIES = ['Par defaut', 'Étude', 'Travail', 'Santé', 'Personnel']
 	const DEFAULT_TAGS = ['Important', 'Urgent']
+	const DEFAULT_PRIORITY_TAG = 'Prioritaire'
+	const CATEGORY_ICON_DEFAULTS = {
+		'default': '🗂️',
+		'par defaut': '🗂️',
+		'travail': '💼',
+		'work': '💼',
+		'étude': '📚',
+		'etude': '📚',
+		'study': '📚',
+		'santé': '💊',
+		'sante': '💊',
+		'health': '💊',
+		'personnel': '🏡',
+		'personal': '🏡',
+	}
 
 	const categories = [...DEFAULT_CATEGORIES]
-	const customTags = new Set(DEFAULT_TAGS)
+	const customTags = new Set([...DEFAULT_TAGS, DEFAULT_PRIORITY_TAG])
 	const tasks = []
+	const categoryIcons = {}
 
 	// ✅ Codes internes + labels FR pour l'affichage
 	const STATUS = {
@@ -55,9 +73,25 @@ const TaskManager = (() => {
 		overdue: 'En retard',
 	}
 
+	const STATUS_VALUES = Object.values(STATUS)
+	const isValidStatus = (value) => STATUS_VALUES.includes(value)
+
+	const normalizeCategoryKey = (value) =>
+		(typeof value === 'string' ? value : '')
+			.trim()
+			.toLowerCase()
+			.normalize('NFD')
+			.replace(/\p{Diacritic}/gu, '')
+
+	const resolveDefaultIcon = (name) => {
+		const normalized = normalizeCategoryKey(name)
+		return CATEGORY_ICON_DEFAULTS[normalized] || CATEGORY_ICON_DEFAULTS.default
+	}
+
 	const cloneTask = (task) => ({
 		...task,
 		tags: [...(task.tags || [])],
+		previousStatus: task.previousStatus || null,
 	})
 
 	const normalizeTag = (value) => {
@@ -65,15 +99,15 @@ const TaskManager = (() => {
 		return value.trim()
 	}
 
-const normalizeTagList = (list) => {
-	if (!Array.isArray(list)) return []
-	const unique = new Set()
-	list.forEach((tag) => {
-		const normalized = normalizeTag(tag)
-		if (normalized) unique.add(normalized)
-	})
-	return [...unique]
-}
+	const normalizeTagList = (list) => {
+		if (!Array.isArray(list)) return []
+		const unique = new Set()
+		list.forEach((tag) => {
+			const normalized = normalizeTag(tag)
+			if (normalized) unique.add(normalized)
+		})
+		return [...unique]
+	}
 
 	function updateOverdueStatuses(options = {}) {
 		const { persist = true } = options
@@ -136,8 +170,45 @@ const normalizeTagList = (list) => {
 		saveTags(customOnly)
 	}
 
+	function persistCategoryIcons() {
+		saveCategoryIcons({ ...categoryIcons })
+	}
+
+	function ensureCategoryIcon(name, options = {}) {
+		const { persist = false, icon } = options
+		const key = normalizeCategoryKey(name)
+		if (!key) return CATEGORY_ICON_DEFAULTS.default
+		if (typeof icon === 'string' && icon.trim()) {
+			categoryIcons[key] = icon.trim()
+		} else if (!categoryIcons[key]) {
+			categoryIcons[key] = resolveDefaultIcon(name)
+		}
+		if (persist) persistCategoryIcons()
+		return categoryIcons[key]
+	}
+
+	function getCategoryIconInternal(name) {
+		const key = normalizeCategoryKey(name)
+		if (!key) return CATEGORY_ICON_DEFAULTS.default
+		return categoryIcons[key] || resolveDefaultIcon(name)
+	}
+
+	function setCategoryIconInternal(name, icon) {
+		const nextIcon = typeof icon === 'string' && icon.trim() ? icon.trim() : null
+		if (!nextIcon) return false
+		const key = normalizeCategoryKey(name)
+		if (!key) return false
+		categoryIcons[key] = nextIcon
+		persistCategoryIcons()
+		return true
+	}
+
 	function serializeTask(task) {
-		return {
+		const previousStatus =
+			task.status === STATUS.COMPLETED && isValidStatus(task.previousStatus)
+				? task.previousStatus
+				: null
+		const serialized = {
 			id: task.id,
 			title: task.title,
 			description: task.description,
@@ -147,6 +218,10 @@ const normalizeTagList = (list) => {
 			createdAt: getIsoDate(task.createdAt) || new Date().toISOString(),
 			tags: [...(task.tags || [])],
 		}
+		if (previousStatus) {
+			serialized.previousStatus = previousStatus
+		}
+		return serialized
 	}
 
 	function persistTasks() {
@@ -160,8 +235,12 @@ const normalizeTagList = (list) => {
 		const existing = categories.find(
 			(cat) => cat.toLowerCase() === normalized.toLowerCase()
 		)
-		if (existing) return existing
+		if (existing) {
+			ensureCategoryIcon(existing, { persist: persist && !categoryIcons[normalizeCategoryKey(existing)] })
+			return existing
+		}
 		categories.push(normalized)
+		ensureCategoryIcon(normalized, { persist: true })
 		if (persist) persistCategories()
 		return normalized
 	}
@@ -187,13 +266,17 @@ const normalizeTagList = (list) => {
 		let status = STATUS.PENDING
 		if (rawStatus.toLowerCase() === 'blocked') {
 			status = STATUS.OVERDUE
-		} else if (Object.values(STATUS).includes(rawStatus)) {
+		} else if (isValidStatus(rawStatus)) {
 			status = rawStatus
 		}
 		const category = ensureCategory(rawTask.category || categories[0])
 		const dueDate = toDateOrNull(rawTask.dueDate)
 		const createdAt = toDateOrNull(rawTask.createdAt) ?? new Date()
 		const tags = normalizeTagList(rawTask.tags)
+		const previousStatus =
+			status === STATUS.COMPLETED && isValidStatus(rawTask.previousStatus)
+				? rawTask.previousStatus
+				: null
 		tags.forEach((tag) => addTagToSet(tag))
 		return {
 			id: rawTask.id || uuidv4(),
@@ -204,14 +287,21 @@ const normalizeTagList = (list) => {
 			status,
 			createdAt,
 			tags,
+			previousStatus,
 		}
 	}
 
 	// Hydratation depuis le stockage local
-loadCategories().forEach((category) => ensureCategory(category))
-loadTags().forEach((tag) => addTagToSet(tag))
-loadTasks().forEach((task) => tasks.push(hydrateTask(task)))
-updateOverdueStatuses({ persist: true })
+	Object.entries(loadCategoryIcons()).forEach(([key, icon]) => {
+		if (typeof icon === 'string' && icon.trim()) {
+			categoryIcons[key] = icon.trim()
+		}
+	})
+	loadCategories().forEach((category) => ensureCategory(category))
+	loadTags().forEach((tag) => addTagToSet(tag))
+	addTagToSet(DEFAULT_PRIORITY_TAG)
+	loadTasks().forEach((task) => tasks.push(hydrateTask(task)))
+	updateOverdueStatuses({ persist: true })
 
 	function registerTag(tag) {
 		return addTagToSet(tag, { persist: true })
@@ -222,19 +312,24 @@ updateOverdueStatuses({ persist: true })
 		description = '',
 		category = categories[0],
 		dueDate = null,
-		status = STATUS.PENDING
+		status = STATUS.PENDING,
+		tags = []
 	) {
 		const due = toDateOrNull(dueDate)
 		const resolvedCategory = ensureCategory(category, { persist: true })
+		const initialStatus = isValidStatus(status) ? status : STATUS.PENDING
+		const normalizedTags = normalizeTagList(tags)
+		normalizedTags.forEach((tag) => addTagToSet(tag, { persist: true }))
 		const newTask = {
 			id: uuidv4(),
 			title,
 			description,
 			category: resolvedCategory,
 			dueDate: due,
-			status,
+			status: initialStatus,
 			createdAt: new Date(),
-			tags: [],
+			tags: normalizedTags,
+			previousStatus: null,
 		}
 		tasks.push(newTask)
 		updateOverdueStatuses({ persist: false })
@@ -252,29 +347,58 @@ updateOverdueStatuses({ persist: true })
 		return false
 	}
 
-	function toggleComplete(id) {
-	const task = tasks.find((t) => t.id === id)
-	if (!task) return null
-	task.status =
-		task.status === STATUS.COMPLETED ? STATUS.PENDING : STATUS.COMPLETED
-	updateOverdueStatuses({ persist: false })
-	persistTasks()
-	return cloneTask(task)
-}
+	function restoreTask(rawTask = {}) {
+		const hydrated = hydrateTask(rawTask)
+		const existing = tasks.find((task) => task.id === hydrated.id)
+		if (existing) return null
+		tasks.push(hydrated)
+		updateOverdueStatuses({ persist: false })
+		persistTasks()
+		return cloneTask(hydrated)
+	}
 
-function updateStatus(id, newStatus) {
-	const valid = Object.values(STATUS)
-	if (!valid.includes(newStatus)) {
+	function toggleComplete(id) {
+		const task = tasks.find((t) => t.id === id)
+		if (!task) return null
+
+		if (task.status === STATUS.COMPLETED) {
+			const fallback =
+				isValidStatus(task.previousStatus) &&
+				task.previousStatus !== STATUS.COMPLETED
+					? task.previousStatus
+					: STATUS.PENDING
+			task.status = fallback
+			task.previousStatus = null
+		} else {
+			task.previousStatus = task.status
+			task.status = STATUS.COMPLETED
+		}
+
+		updateOverdueStatuses({ persist: false })
+		persistTasks()
+		return cloneTask(task)
+	}
+
+	function updateStatus(id, newStatus) {
+		if (!isValidStatus(newStatus)) {
 			console.warn(`Statut invalide : ${newStatus}`)
 			return null
+		}
+		const task = tasks.find((t) => t.id === id)
+		if (!task) return null
+		const previous = task.status
+		task.status = newStatus
+		if (newStatus === STATUS.COMPLETED) {
+			if (previous !== STATUS.COMPLETED) {
+				task.previousStatus = previous
+			}
+		} else {
+			task.previousStatus = null
+		}
+		updateOverdueStatuses({ persist: false })
+		persistTasks()
+		return cloneTask(task)
 	}
-	const task = tasks.find((t) => t.id === id)
-	if (!task) return null
-	task.status = newStatus
-	updateOverdueStatuses({ persist: false })
-	persistTasks()
-	return cloneTask(task)
-}
 
 	function updateTask(id, patch = {}) {
 		const task = tasks.find((t) => t.id === id)
@@ -285,11 +409,30 @@ function updateStatus(id, newStatus) {
 			task.category = ensureCategory(patch.category, { persist: true })
 		}
 		if (patch.dueDate !== undefined) task.dueDate = toDateOrNull(patch.dueDate)
-		if (patch.status !== undefined) task.status = patch.status // <-- pris en charge
-		updateOverdueStatuses({ persist: false })
-		persistTasks()
-		return cloneTask(task)
+	if (patch.status !== undefined) {
+		if (isValidStatus(patch.status)) {
+			const previous = task.status
+			task.status = patch.status
+			if (task.status === STATUS.COMPLETED) {
+				if (previous !== STATUS.COMPLETED) {
+					task.previousStatus = previous
+				}
+			} else {
+				task.previousStatus = null
+			}
+		} else {
+			console.warn(`Statut invalide : ${patch.status}`)
+		}
 	}
+	if (patch.tags !== undefined) {
+		const normalizedTags = normalizeTagList(patch.tags)
+		task.tags = normalizedTags
+		normalizedTags.forEach((tag) => addTagToSet(tag, { persist: true }))
+	}
+	updateOverdueStatuses({ persist: false })
+	persistTasks()
+	return cloneTask(task)
+}
 
 	function getTasks() {
 		updateOverdueStatuses()
@@ -323,8 +466,18 @@ function updateStatus(id, newStatus) {
 				task.category = to
 			}
 		})
+		const fromKey = normalizeCategoryKey(from)
+		const toKey = normalizeCategoryKey(to)
+		if (categoryIcons[fromKey]) {
+			const icon = categoryIcons[fromKey]
+			delete categoryIcons[fromKey]
+			categoryIcons[toKey] = icon
+		} else {
+			ensureCategoryIcon(to)
+		}
 		persistCategories()
 		persistTasks()
+		persistCategoryIcons()
 		return true
 	}
 
@@ -340,11 +493,17 @@ function updateStatus(id, newStatus) {
 			categories.push(DEFAULT_CATEGORIES[0])
 		}
 		const fallback = categories[0]
+		ensureCategoryIcon(fallback, { persist: true })
 		tasks.forEach((task) => {
 			if ((task.category || '').toLowerCase() === target.toLowerCase()) {
 				task.category = fallback
 			}
 		})
+		const key = normalizeCategoryKey(target)
+		if (categoryIcons[key]) {
+			delete categoryIcons[key]
+			persistCategoryIcons()
+		}
 		persistCategories()
 		persistTasks()
 		return true
@@ -427,6 +586,18 @@ function updateStatus(id, newStatus) {
 		return [...tagsSet].sort((a, b) => a.localeCompare(b))
 	}
 
+	function getCategoryIcon(categoryName) {
+		return getCategoryIconInternal(categoryName)
+	}
+
+	function setCategoryIcon(categoryName, icon) {
+		return setCategoryIconInternal(categoryName, icon)
+	}
+
+	function getAllCategoryIcons() {
+		return { ...categoryIcons }
+	}
+
 	function hasTasks() {
 		return tasks.length > 0
 	}
@@ -436,9 +607,11 @@ function updateStatus(id, newStatus) {
 		const normalizedDefaults = DEFAULT_CATEGORIES.map((cat) => cat.toLowerCase())
 		const seen = new Set()
 		categories.length = 0
+		Object.keys(categoryIcons).forEach((key) => delete categoryIcons[key])
 		DEFAULT_CATEGORIES.forEach((cat) => {
 			categories.push(cat)
 			seen.add(cat.toLowerCase())
+			ensureCategoryIcon(cat)
 		})
 		serializedTasks.forEach((task) => {
 			const hydrated = hydrateTask(task)
@@ -447,27 +620,36 @@ function updateStatus(id, newStatus) {
 			if (categoryName && !seen.has(categoryName.toLowerCase())) {
 				categories.push(categoryName)
 				seen.add(categoryName.toLowerCase())
+				ensureCategoryIcon(categoryName)
 			}
 		})
 		persistCategories()
 		persistTasks()
+		persistCategoryIcons()
 		updateOverdueStatuses({ persist: true })
 	}
 
 	function resetAll() {
 		tasks.length = 0
 		categories.length = 0
-		DEFAULT_CATEGORIES.forEach((cat) => categories.push(cat))
+		Object.keys(categoryIcons).forEach((key) => delete categoryIcons[key])
+		DEFAULT_CATEGORIES.forEach((cat) => {
+			categories.push(cat)
+			ensureCategoryIcon(cat)
+		})
 		customTags.clear()
 		DEFAULT_TAGS.forEach((tag) => customTags.add(tag))
+		customTags.add(DEFAULT_PRIORITY_TAG)
 		saveCategories([])
 		saveTags([])
 		saveTasks([])
-	}
+		persistCategoryIcons()
+ 	}
 
 	return {
 		addTask,
 		deleteTask,
+		restoreTask,
 		toggleComplete,
 		updateTask,
 		updateStatus,
@@ -481,6 +663,9 @@ function updateStatus(id, newStatus) {
 		filterTasksByPeriod,
 		getStats,
 		getTags,
+		getCategoryIcon,
+		setCategoryIcon,
+		getAllCategoryIcons,
 		registerTag,
 		hasTasks,
 		replaceAllTasks,
@@ -488,6 +673,8 @@ function updateStatus(id, newStatus) {
 		isDefaultCategory,
 		STATUS,
 		STATUS_LABELS,
+		CATEGORY_ICON_DEFAULTS,
+		DEFAULT_PRIORITY_TAG,
 	}
 })()
 

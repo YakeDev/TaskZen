@@ -26,12 +26,13 @@
 						TaskZen
 					</h1>
 					<button
-						id="menuToggleBtn"
-						type="button"
-						class="p-2 rounded-lg focus:outline-none transition hover:bg-gray-200 dark:text-slate-200 dark:hover:bg-slate-800"
-						aria-label="Masquer le menu"
-						aria-controls="sidebarContent"
-						aria-expanded="true">
+					id="menuToggleBtn"
+					type="button"
+					class="p-2 rounded-lg focus:outline-none transition hover:bg-gray-200 dark:text-slate-200 dark:hover:bg-slate-800"
+					aria-label="Masquer le menu"
+					title="Afficher/masquer le menu"
+					aria-controls="sidebarContent"
+					aria-expanded="true">
 						<svg
 							class="w-6 h-6"
 							fill="none"
@@ -49,12 +50,13 @@
 				<div
 					id="sidebarContent"
 					class="flex flex-col flex-1 overflow-auto sidebar-hideable space-y-4">
-					<div>
-						<input
-							type="text"
-							placeholder="Rechercher"
-							class="w-full px-3 py-2 rounded-lg border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
-					</div>
+						<div>
+							<input
+								id="sidebarSearchInput"
+								type="text"
+								placeholder="Rechercher"
+								class="w-full px-3 py-2 rounded-lg border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+						</div>
 
 					<div class="space-y-2">
 						<h2
@@ -189,24 +191,24 @@
 
 			<section
 				id="taskSection"
-				class="p-2 h-full overflow-auto text-gray-900 dark:text-slate-100 transition-colors duration-300">
-				<div id="stats"></div>
-				<div class="pt-4 space-y-4">
-					<div class="flex items-center justify-between">
-						<h2
-							id="tasksViewTitle"
-							class="text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-slate-300">
-							Mes tâches
-						</h2>
+				class="p-4 h-full overflow-auto text-gray-900 dark:text-slate-100 transition-colors duration-300 space-y-6">
+				<header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+					<div>
+						<h1 class="text-3xl font-semibold text-gray-900 dark:text-slate-50">Tableau de bord</h1>
+						<p class="text-sm text-gray-500 dark:text-slate-400">Concentrez-vous sur vos priorités quotidiennes.</p>
+					</div>
+					<div class="flex gap-2">
 						<button
-							id="openFormBtn"
 							type="button"
-							class="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-3 py-2 text-xs font-semibold text-white shadow hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:bg-emerald-600 dark:hover:bg-emerald-500">
+							class="hidden sm:inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+							data-open-form
+							title="Créer une nouvelle tâche (N)">
 							<svg
 								class="w-4 h-4"
 								fill="none"
 								stroke="currentColor"
 								viewBox="0 0 24 24">
+								<title>Nouvelle tâche</title>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -216,7 +218,76 @@
 							Nouvelle tâche
 						</button>
 					</div>
-					<ul id="taskList" class="space-y-2"></ul>
+				</header>
+
+				<div id="stats"></div>
+
+				<section
+					id="todaySection"
+					class="rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
+					<div class="flex items-center justify-between flex-wrap gap-2">
+						<h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2">
+							<svg
+								class="w-5 h-5 text-emerald-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24">
+								<title> Aujourd'hui </title>
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10m-13 8h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z" />
+							</svg>
+							Aujourd’hui
+						</h2>
+						<button
+							type="button"
+							class="inline-flex items-center gap-2 rounded-md border border-emerald-200 px-3 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+							data-period-shortcut="today"
+							title="Filtrer les tâches du jour">
+							<svg
+								class="w-4 h-4"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24">
+								<title>Filtrer</title>
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h18l-7 8v6l-4 2v-8L3 4Z" />
+							</svg>
+							Voir toutes les tâches du jour
+						</button>
+					</div>
+					<ul id="todayTaskList" class="mt-3 space-y-2" aria-live="polite"></ul>
+				</section>
+
+				<hr class="border-t border-dashed border-gray-200 dark:border-slate-700" />
+
+				<div class="space-y-4">
+					<div class="flex flex-wrap items-center justify-between gap-3">
+						<h2
+							id="tasksViewTitle"
+							class="text-2xl font-semibold tracking-tight text-gray-800 dark:text-slate-100">
+							Mes tâches
+						</h2>
+						<div class="flex gap-2">
+							<button
+								type="button"
+								class="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+								data-open-form
+								title="Créer une nouvelle tâche (N)">
+								<svg
+									class="w-4 h-4"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24">
+									<title>Nouvelle tâche</title>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M12 4v16m8-8H4" />
+								</svg>
+								Nouvelle tâche
+							</button>
+						</div>
+					</div>
+					<ul id="taskList" class="space-y-3"></ul>
 				</div>
 			</section>
 			<aside
@@ -230,11 +301,12 @@
 								class="text-lg font-semibold text-gray-900 dark:text-slate-100">
 								Nouvelle tâche
 							</h2>
-							<button
-								type="button"
-								id="closeFormBtn"
-								class="rounded-full p-2 text-gray-500 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:text-slate-300 dark:hover:bg-slate-800"
-								aria-label="Fermer le formulaire">
+					<button
+						type="button"
+						id="closeFormBtn"
+					class="rounded-full p-2 text-gray-500 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:text-slate-300 dark:hover:bg-slate-800"
+						aria-label="Fermer le formulaire"
+						title="Fermer le formulaire">
 								<svg
 									class="w-4 h-4"
 									fill="none"
@@ -357,7 +429,25 @@
 									</div>
 								</div>
 							</div>
-						</div>
+
+							<!-- Priorité -->
+							<div class="col-span-5">
+								<div class="flex items-center justify-between gap-3">
+									<label
+										for="priority"
+										class="block text-sm font-normal text-gray-500 dark:text-slate-300">
+										Prioritaire
+									</label>
+									<div class="mt-2 flex items-center gap-2">
+										<input
+											type="checkbox"
+											id="priority"
+											name="priority"
+											class="h-4 w-4 rounded border-gray-300 text-amber-500 focus:ring-2 focus:ring-amber-400 dark:border-slate-600" />
+										<span class="text-xs font-medium text-amber-500">Tag “Prioritaire”</span>
+									</div>
+								</div>
+							</div>
 					</div>
 
 					<!-- Footer collé en bas -->
@@ -383,10 +473,11 @@
 						<h2 class="text-lg font-semibold text-gray-900">Paramètres</h2>
 						<p class="text-sm text-gray-500">Personnalisez votre expérience.</p>
 					</div>
-					<button
-						id="closeSettingsBtn"
-						class="rounded-full p-2 text-gray-500 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-						aria-label="Fermer les paramètres">
+				<button
+					id="closeSettingsBtn"
+					class="rounded-full p-2 text-gray-500 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+					aria-label="Fermer les paramètres"
+					title="Fermer les paramètres">
 						<svg
 							class="w-4 h-4"
 							xmlns="http://www.w3.org/2000/svg"
@@ -508,6 +599,73 @@
 			id="settingsImportFile"
 			class="hidden"
 			accept="application/json" />
+
+		<button
+			type="button"
+			id="floatingNewTaskBtn"
+			class="fixed bottom-5 right-5 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-400 sm:hidden"
+			data-open-form
+			title="Créer une nouvelle tâche (N)">
+			<span class="text-2xl leading-none">+</span>
+		</button>
+
+		<div
+			id="undoToast"
+			class="pointer-events-none fixed bottom-6 left-1/2 z-40 hidden w-[90%] max-w-sm -translate-x-1/2 transform rounded-lg bg-gray-900/95 px-4 py-3 text-sm text-white shadow-lg"
+			role="status"
+			aria-live="assertive">
+			<div class="flex items-center justify-between gap-3">
+				<p id="undoToastMessage" class="text-sm"></p>
+				<button
+					id="undoToastAction"
+					type="button"
+					class="pointer-events-auto rounded-md bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/70">
+					Annuler
+				</button>
+			</div>
+		</div>
+
+		<div
+			id="onboardingModal"
+			class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+			tabindex="-1"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="onboardingTitle">
+			<div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-slate-900 dark:text-slate-100">
+				<div class="flex items-start justify-between">
+					<h2 id="onboardingTitle" class="text-xl font-semibold text-gray-900 dark:text-slate-100">
+						Bienvenue sur TaskZen
+					</h2>
+					<button
+						type="button"
+						id="onboardingSkip"
+						class="text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:text-slate-400 dark:hover:text-slate-200"
+						title="Ignorer l’introduction">
+						Sauter
+					</button>
+				</div>
+				<div id="onboardingBody" class="mt-4 space-y-3 text-sm text-gray-600 dark:text-slate-300"></div>
+				<div class="mt-6 flex items-center justify-between">
+					<button
+						type="button"
+						id="onboardingPrev"
+						class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+						disabled>
+						Précédent
+					</button>
+					<div class="flex items-center gap-2">
+						<div class="flex items-center gap-1" id="onboardingDots" aria-hidden="true"></div>
+						<button
+							type="button"
+							id="onboardingNext"
+							class="rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:bg-emerald-600 dark:hover:bg-emerald-500">
+							Suivant
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
 
 		<script type="module" src="/src/main.js"></script>
 	</body>

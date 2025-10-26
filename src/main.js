@@ -8,7 +8,9 @@ if (!TaskManager.hasTasks()) {
 			task.title,
 			task.description,
 			task.category,
-			task.dueDate
+			task.dueDate,
+			task.status,
+			task.tags
 		)
 	})
 }
