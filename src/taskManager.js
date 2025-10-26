@@ -222,28 +222,25 @@ updateOverdueStatuses({ persist: true })
 		description = '',
 		category = categories[0],
 		dueDate = null,
-		status = STATUS.PENDING,
-		tags = []
+		status = STATUS.PENDING
 	) {
-	const due = toDateOrNull(dueDate)
-	const normalizedTags = normalizeTagList(tags)
-	const resolvedCategory = ensureCategory(category, { persist: true })
-	normalizedTags.forEach((tag) => addTagToSet(tag, { persist: true }))
-	const newTask = {
-		id: uuidv4(),
-		title,
-		description,
-		category: resolvedCategory,
-		dueDate: due,
-		status,
-		createdAt: new Date(),
-		tags: normalizedTags,
+		const due = toDateOrNull(dueDate)
+		const resolvedCategory = ensureCategory(category, { persist: true })
+		const newTask = {
+			id: uuidv4(),
+			title,
+			description,
+			category: resolvedCategory,
+			dueDate: due,
+			status,
+			createdAt: new Date(),
+			tags: [],
+		}
+		tasks.push(newTask)
+		updateOverdueStatuses({ persist: false })
+		persistTasks()
+		return cloneTask(newTask)
 	}
-	tasks.push(newTask)
-	updateOverdueStatuses({ persist: false })
-	persistTasks()
-	return cloneTask(newTask)
-}
 
 	function deleteTask(id) {
 		const index = tasks.findIndex((task) => task.id === id)
@@ -289,15 +286,10 @@ function updateStatus(id, newStatus) {
 		}
 		if (patch.dueDate !== undefined) task.dueDate = toDateOrNull(patch.dueDate)
 		if (patch.status !== undefined) task.status = patch.status // <-- pris en charge
-	if (patch.tags !== undefined) {
-		const normalizedTags = normalizeTagList(patch.tags)
-		task.tags = normalizedTags
-		normalizedTags.forEach((tag) => addTagToSet(tag, { persist: true }))
+		updateOverdueStatuses({ persist: false })
+		persistTasks()
+		return cloneTask(task)
 	}
-	updateOverdueStatuses({ persist: false })
-	persistTasks()
-	return cloneTask(task)
-}
 
 	function getTasks() {
 		updateOverdueStatuses()
@@ -311,6 +303,51 @@ function updateStatus(id, newStatus) {
 	function addCategory(name) {
 		ensureCategory(name, { persist: true })
 		return getCategories()
+	}
+
+	function renameCategory(oldName, newName) {
+		const from = typeof oldName === 'string' ? oldName.trim() : ''
+		const to = typeof newName === 'string' ? newName.trim() : ''
+		if (!from || !to) return false
+		const index = categories.findIndex(
+			(cat) => cat.toLowerCase() === from.toLowerCase()
+		)
+		if (index === -1) return false
+		const duplicate = categories.find(
+			(cat, idx) => idx !== index && cat.toLowerCase() === to.toLowerCase()
+		)
+		if (duplicate) return false
+		categories[index] = to
+		tasks.forEach((task) => {
+			if ((task.category || '').toLowerCase() === from.toLowerCase()) {
+				task.category = to
+			}
+		})
+		persistCategories()
+		persistTasks()
+		return true
+	}
+
+	function deleteCategory(name) {
+		const target = typeof name === 'string' ? name.trim() : ''
+		if (!target || isDefaultCategory(target)) return false
+		const index = categories.findIndex(
+			(cat) => cat.toLowerCase() === target.toLowerCase()
+		)
+		if (index === -1) return false
+		categories.splice(index, 1)
+		if (!categories.length) {
+			categories.push(DEFAULT_CATEGORIES[0])
+		}
+		const fallback = categories[0]
+		tasks.forEach((task) => {
+			if ((task.category || '').toLowerCase() === target.toLowerCase()) {
+				task.category = fallback
+			}
+		})
+		persistCategories()
+		persistTasks()
+		return true
 	}
 
 	function getTasksByCategory(categoryName) {
@@ -394,6 +431,40 @@ function updateStatus(id, newStatus) {
 		return tasks.length > 0
 	}
 
+	function replaceAllTasks(serializedTasks = []) {
+		tasks.length = 0
+		const normalizedDefaults = DEFAULT_CATEGORIES.map((cat) => cat.toLowerCase())
+		const seen = new Set()
+		categories.length = 0
+		DEFAULT_CATEGORIES.forEach((cat) => {
+			categories.push(cat)
+			seen.add(cat.toLowerCase())
+		})
+		serializedTasks.forEach((task) => {
+			const hydrated = hydrateTask(task)
+			tasks.push(hydrated)
+			const categoryName = hydrated.category
+			if (categoryName && !seen.has(categoryName.toLowerCase())) {
+				categories.push(categoryName)
+				seen.add(categoryName.toLowerCase())
+			}
+		})
+		persistCategories()
+		persistTasks()
+		updateOverdueStatuses({ persist: true })
+	}
+
+	function resetAll() {
+		tasks.length = 0
+		categories.length = 0
+		DEFAULT_CATEGORIES.forEach((cat) => categories.push(cat))
+		customTags.clear()
+		DEFAULT_TAGS.forEach((tag) => customTags.add(tag))
+		saveCategories([])
+		saveTags([])
+		saveTasks([])
+	}
+
 	return {
 		addTask,
 		deleteTask,
@@ -403,6 +474,8 @@ function updateStatus(id, newStatus) {
 		getTasks,
 		getCategories,
 		addCategory,
+		renameCategory,
+		deleteCategory,
 		getTasksByCategory,
 		getTasksByStatus,
 		filterTasksByPeriod,
@@ -410,6 +483,9 @@ function updateStatus(id, newStatus) {
 		getTags,
 		registerTag,
 		hasTasks,
+		replaceAllTasks,
+		resetAll,
+		isDefaultCategory,
 		STATUS,
 		STATUS_LABELS,
 	}

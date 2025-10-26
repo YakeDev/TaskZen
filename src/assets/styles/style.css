@@ -1,13 +1,41 @@
 @import 'tailwindcss';
 
 @layer base {
+	html {
+		color-scheme: light;
+	}
+
+	html.dark {
+		color-scheme: dark;
+	}
+
+	body {
+		@apply bg-slate-50 text-gray-900 transition-colors duration-300;
+	}
+
+	html.dark body {
+		@apply bg-slate-950 text-slate-100;
+	}
+
 	#app {
-		@apply grid gap-4 p-6 h-full;
+		@apply grid gap-4 p-6 h-full transition-colors duration-300;
 		grid-template-columns: minmax(0, 320px) minmax(0, 1fr) minmax(0, 360px);
 	}
 
 	#app[data-sidebar-collapsed='true'] {
 		grid-template-columns: 72px minmax(0, 1fr) minmax(0, 360px);
+	}
+
+	#app[data-form-visible='false'] {
+		grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+	}
+
+	#app[data-sidebar-collapsed='true'][data-form-visible='false'] {
+		grid-template-columns: 72px minmax(0, 1fr);
+	}
+
+	html.dark #app {
+		@apply bg-slate-950;
 	}
 }
 
@@ -29,8 +57,121 @@
 	#sidebar[data-collapsed='true'] .sidebar-hideable {
 		@apply hidden;
 	}
+
+	.task-card {
+		@apply rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm transition hover:border-emerald-300;
+	}
+
+	#app[data-density='compact'] .task-card {
+		@apply px-2 py-1;
+	}
+
+	#app[data-density='compact'] #taskList {
+		@apply space-y-1;
+	}
+
+	#app:not([data-form-visible='false']) #formAside {
+		@apply transition-colors duration-300;
+	}
+
+	html.dark #sidebar {
+		@apply bg-slate-900 text-slate-100 border border-slate-700;
+	}
+
+	html.dark #sidebar button {
+		@apply text-slate-200 hover:text-white;
+	}
+
+	html.dark #sidebar input,
+	html.dark #sidebar select {
+		@apply bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-400;
+	}
+
+	html.dark .task-card {
+		@apply border-slate-700 bg-slate-800 text-slate-100 hover:border-emerald-400;
+	}
+
+	html.dark .task-card span {
+		color: inherit;
+	}
+
+	html.dark #settingsModal > div:nth-child(2) {
+		@apply bg-slate-900 text-slate-100;
+	}
+
+	html.dark #settingsModal button {
+		@apply text-slate-100;
+	}
+
+	html.dark #settingsModal select,
+	html.dark #settingsModal input {
+		@apply bg-slate-800 border-slate-700 text-slate-100;
+	}
+
+	html.dark #settingsCategoriesList li {
+		@apply border-slate-700 bg-slate-800 text-slate-100;
+	}
+
+	html.dark #formAside {
+		@apply bg-slate-900 text-slate-100;
+	}
+
+	html.dark #formAside input,
+	html.dark #formAside textarea,
+	html.dark #formAside select {
+		@apply bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-400;
+	}
+
+	html.dark #stats section > div,
+	html.dark #stats .rounded-xl {
+		@apply bg-slate-900 text-slate-100 border-slate-700;
+	}
+}
+
+html.dark #sidebar {
+	@apply bg-slate-900 text-slate-100 border border-slate-700;
+}
+
+html.dark #sidebar button {
+	@apply text-slate-200 hover:text-white hover:bg-slate-800;
+}
+
+html.dark #sidebar .sidebar-hideable input,
+html.dark #sidebar .sidebar-hideable select,
+html.dark #sidebar .sidebar-hideable button {
+	@apply border-slate-700 bg-slate-800 text-slate-100;
+}
+
+html.dark #taskSection {
+	@apply text-slate-100;
+}
+
+html.dark #taskSection #tasksViewTitle {
+	@apply text-slate-200;
+}
+
+html.dark #taskList li {
+	@apply text-slate-100;
+}
+
+html.dark #stats .tracking-wide {
+	@apply text-slate-300;
+}
+
+html.dark #stats section > div,
+html.dark #stats .rounded-xl,
+html.dark #stats .border-dashed {
+	@apply border-slate-700 bg-slate-900 text-slate-100;
+}
+
+html.dark #stats .border-gray-100 {
+	@apply border-slate-700;
+}
+
+html.dark #stats .text-gray-700 {
+	@apply text-slate-200;
 }
 
 @layer utilities {
-	/* reserved for future custom utilities */
+ /* reserved for future custom utilities */
 }

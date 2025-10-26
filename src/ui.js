@@ -4,10 +4,13 @@ import {
 	Calendar,
 	CheckCircle2,
 	CircleDot,
+	CalendarCheck,
 	ClipboardList,
 	FolderClosed,
+	List,
 	ListTodo,
 	OctagonAlert,
+	PanelLeft,
 	Pencil,
 	Timer,
 	Trash2,
@@ -28,9 +31,6 @@ const statsContainer = document.getElementById('stats')
 const sidebarTaskFilters = document.getElementById('sidebarTaskFilters')
 const categoryListEl = document.getElementById('categoryList')
 const addCategoryBtn = document.getElementById('addCategoryBtn')
-const tagListEl = document.getElementById('tagList')
-const sidebarTagForm = document.getElementById('sidebarTagForm')
-const sidebarTagInput = document.getElementById('sidebarTagInput')
 const menuToggleBtn = document.getElementById('menuToggleBtn')
 const appRoot = document.getElementById('app')
 
@@ -39,16 +39,177 @@ const sidebarContent = document.getElementById('sidebarContent')
 const taskSection = document.getElementById('taskSection')
 const formAside = document.getElementById('formAside')
 const tasksViewTitle = document.getElementById('tasksViewTitle')
+const openFormBtn = document.getElementById('openFormBtn')
+const closeFormBtn = document.getElementById('closeFormBtn')
+const settingsModal = document.getElementById('settingsModal')
+const settingsOverlay = document.getElementById('settingsOverlay')
+const openSettingsBtn = document.getElementById('openSettingsBtn')
+const closeSettingsBtn = document.getElementById('closeSettingsBtn')
+const settingsLanguageSelect = document.getElementById('settingsLanguage')
+const settingsThemeSelect = document.getElementById('settingsTheme')
+const settingsDensitySelect = document.getElementById('settingsDensity')
+const settingsFeedbackToggle = document.getElementById('settingsFeedback')
+const settingsCategoriesList = document.getElementById('settingsCategoriesList')
+const settingsAddCategoryForm = document.getElementById('settingsAddCategoryForm')
+const settingsAddCategoryInput = document.getElementById('settingsAddCategoryInput')
+const settingsExportBtn = document.getElementById('settingsExportBtn')
+const settingsImportBtn = document.getElementById('settingsImportBtn')
+const settingsImportFile = document.getElementById('settingsImportFile')
+const settingsResetBtn = document.getElementById('settingsResetBtn')
 
 const selectedTagsContainer = document.getElementById('selectedTags')
-const tagInput = document.getElementById('tagInput')
-const addTagBtn = document.getElementById('addTagBtn')
-const tagOptionsEl = document.getElementById('tagOptions')
+const feedbackRegion = document.getElementById('formFeedback')
+if (feedbackRegion) feedbackRegion.dataset.visible = 'false'
+
+const SETTINGS_STORAGE_KEY = 'todo:list:user-settings'
+const DEFAULT_USER_SETTINGS = {
+	language: 'fr',
+	theme: 'light',
+	density: 'comfortable',
+	notifications: {
+		feedback: true,
+	},
+}
+
+const loadUserSettings = () => {
+	try {
+		const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
+		if (!raw) return { ...DEFAULT_USER_SETTINGS }
+		const parsed = JSON.parse(raw)
+		return {
+			...DEFAULT_USER_SETTINGS,
+			...parsed,
+			notifications: {
+				...DEFAULT_USER_SETTINGS.notifications,
+				...(parsed?.notifications || {}),
+			},
+		}
+	} catch {
+		return { ...DEFAULT_USER_SETTINGS }
+	}
+}
+
+let userSettings = loadUserSettings()
+
+const saveUserSettings = () => {
+	localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(userSettings))
+}
+
+const applySettings = () => {
+	if (userSettings.theme === 'dark') {
+		document.documentElement.classList.add('dark')
+		document.body.classList.add('bg-slate-900', 'text-slate-100')
+	} else {
+		document.documentElement.classList.remove('dark')
+		document.body.classList.remove('bg-slate-900', 'text-slate-100')
+	}
+	if (appRoot) {
+		appRoot.dataset.density = userSettings.density
+	}
+}
+
+applySettings()
+
+const openSettingsPanel = () => {
+	if (!settingsModal) return
+	settingsModal.classList.remove('hidden')
+	if (settingsLanguageSelect)
+		settingsLanguageSelect.value = userSettings.language || 'fr'
+	if (settingsThemeSelect) settingsThemeSelect.value = userSettings.theme
+	if (settingsDensitySelect)
+		settingsDensitySelect.value = userSettings.density || 'comfortable'
+	if (settingsFeedbackToggle)
+		settingsFeedbackToggle.checked = !!userSettings.notifications.feedback
+	renderSettingsCategories()
+	settingsModal.focus()
+}
+
+const closeSettingsPanel = () => {
+	if (!settingsModal) return
+	settingsModal.classList.add('hidden')
+	if (settingsImportFile) settingsImportFile.value = ''
+}
+
+const renderSettingsCategories = () => {
+	if (!settingsCategoriesList) return
+	settingsCategoriesList.innerHTML = ''
+	const categories = TaskManager.getCategories()
+	categories.forEach((category) => {
+		const li = document.createElement('li')
+		li.className =
+			'flex items-center justify-between rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700'
+
+		const name = document.createElement('span')
+		name.textContent = category
+		li.appendChild(name)
+
+		const actions = document.createElement('div')
+		actions.className = 'flex gap-2'
+
+		const isDefault = TaskManager.isDefaultCategory(category)
+
+		const renameBtn = document.createElement('button')
+		renameBtn.type = 'button'
+		renameBtn.textContent = 'Renommer'
+		renameBtn.className =
+			'text-emerald-600 hover:text-emerald-700 disabled:text-gray-400 text-xs'
+		renameBtn.disabled = isDefault
+		renameBtn.addEventListener('click', () => {
+			const newName = window.prompt(
+				'Nouveau nom pour la catégorie :',
+				category
+			)
+			const trimmed = newName?.trim()
+			if (!trimmed || trimmed === category) return
+			const ok = TaskManager.renameCategory(category, trimmed)
+			if (!ok) {
+				showFeedback(
+					'Impossible de renommer la catégorie (nom déjà utilisé ?)',
+					'error'
+				)
+				return
+			}
+			renderSettingsCategories()
+			renderCategoryOptions(trimmed)
+			renderSidebar()
+			showFeedback('Catégorie renommée avec succès.')
+		})
+
+		const deleteBtn = document.createElement('button')
+		deleteBtn.type = 'button'
+		deleteBtn.textContent = 'Supprimer'
+		deleteBtn.className =
+			'text-rose-600 hover:text-rose-700 disabled:text-gray-400 text-xs'
+		deleteBtn.disabled = isDefault
+		deleteBtn.addEventListener('click', () => {
+			if (
+				!window.confirm(
+					`Supprimer la catégorie « ${category} » ? Les tâches associées seront déplacées dans la première catégorie disponible.`
+				)
+			)
+				return
+			const ok = TaskManager.deleteCategory(category)
+			if (!ok) {
+				showFeedback('Impossible de supprimer cette catégorie.', 'error')
+				return
+			}
+			resetFormState(false)
+			renderSettingsCategories()
+			renderCategoryOptions(TaskManager.getCategories()[0])
+			renderSidebar()
+			showFeedback('Catégorie supprimée avec succès.')
+		})
+
+		actions.append(renameBtn, deleteBtn)
+		li.appendChild(actions)
+		settingsCategoriesList.appendChild(li)
+	})
+}
 
 const STATUS_BADGES = {
 	pending: 'bg-gray-100 text-gray-700',
 	'in-progress': 'bg-blue-100 text-blue-700',
-	overdue: 'bg-red-100 text-red-700',
+	overdue: 'bg-rose-100 text-rose-700',
 	completed: 'bg-emerald-100 text-emerald-700',
 }
 
@@ -82,6 +243,7 @@ const state = {
 let editingTaskId = null
 let currentTags = []
 let isSidebarCollapsed = false
+let isFormVisible = false
 
 const renderIcon = (icon, options = {}) => {
 	if (!icon) return ''
@@ -168,6 +330,27 @@ const setSidebarCollapsed = (collapsed) => {
 	}
 }
 
+const setFormVisible = (visible) => {
+	isFormVisible = visible
+	if (appRoot) appRoot.dataset.formVisible = visible ? 'true' : 'false'
+	if (formAside) {
+		formAside.classList.toggle('hidden', !visible)
+		if (visible) {
+			formAside.classList.remove('hidden')
+		} else {
+			formAside.classList.add('hidden')
+		}
+	}
+	if (!visible && feedbackRegion) {
+		feedbackRegion.textContent = ''
+		feedbackRegion.className = 'hidden'
+		feedbackRegion.dataset.visible = 'false'
+	}
+	if (visible) {
+		setTimeout(() => titleInput?.focus(), 50)
+	}
+}
+
 const isCompleted = (task) => task.status === TaskManager.STATUS.COMPLETED
 const excludeCompletedTasks = (tasks = []) =>
 	tasks.filter((task) => !isCompleted(task))
@@ -185,53 +368,35 @@ const formatDate = (value) => {
 }
 
 const setCurrentTags = (tags) => {
-	currentTags = dedupeTags(tags)
-	renderSelectedTags()
+	currentTags = []
+	if (selectedTagsContainer) selectedTagsContainer.innerHTML = ''
 }
 
-const renderSelectedTags = () => {
-	if (!selectedTagsContainer) return
-	selectedTagsContainer.innerHTML = ''
-
-	if (!currentTags.length) {
-		const placeholder = document.createElement('span')
-		placeholder.className = 'text-xs text-gray-400'
-		placeholder.textContent = 'Aucun tag sélectionné'
-		selectedTagsContainer.appendChild(placeholder)
-		return
-	}
-
-	currentTags.forEach((tag) => {
-		const capsule = document.createElement('span')
-		capsule.className =
-			'inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700'
-
-		const text = document.createElement('span')
-		text.textContent = tag
-
-		const removeBtn = document.createElement('button')
-		removeBtn.type = 'button'
-		removeBtn.dataset.removeTag = tag
-		removeBtn.className =
-			'rounded-full bg-white/60 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 hover:bg-white hover:text-amber-700'
-		removeBtn.textContent = '×'
-
-		capsule.append(text, removeBtn)
-		selectedTagsContainer.appendChild(capsule)
-	})
-}
-
-const renderTagOptions = () => {
-	if (!tagOptionsEl) return
-	tagOptionsEl.innerHTML = ''
-	const tags = TaskManager.getTags()
-	const fragment = document.createDocumentFragment()
-	tags.forEach((tag) => {
-		const option = document.createElement('option')
-		option.value = tag
-		fragment.appendChild(option)
-	})
-	tagOptionsEl.appendChild(fragment)
+const showFeedback = (message, type = 'success') => {
+	if (!userSettings.notifications.feedback) return
+	if (!feedbackRegion) return
+	feedbackRegion.dataset.visible = 'true'
+	feedbackRegion.classList.remove('hidden', 'opacity-0')
+	const base =
+		'rounded-md px-3 py-2 text-sm font-medium transition-opacity duration-300'
+	const palette =
+		type === 'error'
+			? 'bg-rose-100 text-rose-700 border border-rose-200'
+			: 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+	feedbackRegion.textContent = message
+	feedbackRegion.className = `${base} ${palette}`
+	setTimeout(() => {
+		if (feedbackRegion.dataset.visible === 'true') {
+			feedbackRegion.classList.add('opacity-0')
+		}
+	}, 2200)
+	setTimeout(() => {
+		if (feedbackRegion.dataset.visible === 'true') {
+			feedbackRegion.textContent = ''
+			feedbackRegion.className = 'hidden'
+			feedbackRegion.dataset.visible = 'false'
+		}
+	}, 2600)
 }
 
 const renderCategoryOptions = (preferredValue) => {
@@ -288,8 +453,33 @@ function updateFilterIndicators() {
 		})
 }
 
+const renderFilterIcon = (key) => {
+	const iconMap = {
+		dashboard: PanelLeft,
+		upcoming: List,
+		today: CalendarCheck,
+		overdue: OctagonAlert,
+		completed: CheckCircle2,
+	}
+	const icon = iconMap[key]
+	if (!icon) return ''
+	const svgMarkup = renderIcon(icon, {
+		size: 16,
+		className: 'w-4 h-4 shrink-0 text-gray-500',
+	})
+	return svgMarkup.replace('<svg ', `<svg data-icon="${key}" `)
+}
+
 const renderSidebar = () => {
 	const stats = TaskManager.getStats()
+	const filterListItems = sidebarTaskFilters?.querySelectorAll('li') || []
+	filterListItems.forEach((item) => {
+		const iconKey = item.dataset.view || item.dataset.period || item.dataset.status
+		const svg = item.querySelector('svg[data-icon]')
+		if (svg) {
+			svg.outerHTML = renderFilterIcon(iconKey)
+		}
+	})
 
 	const todayActiveTasks = excludeCompletedTasks(
 		TaskManager.filterTasksByPeriod('today')
@@ -352,28 +542,6 @@ const renderSidebar = () => {
 		}
 	}
 
-	if (tagListEl) {
-		tagListEl.innerHTML = ''
-		const tags = TaskManager.getTags()
-		if (!tags.length) {
-			const empty = document.createElement('p')
-			empty.className = 'text-xs text-gray-400'
-			empty.textContent = 'Aucun tag pour le moment'
-			tagListEl.appendChild(empty)
-		} else {
-			tags.forEach((tag) => {
-				const button = document.createElement('button')
-				button.type = 'button'
-				button.dataset.tag = tag
-				button.className =
-					'rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 transition hover:bg-amber-100 hover:text-amber-700'
-				button.textContent = tag
-				tagListEl.appendChild(button)
-			})
-		}
-	}
-
-	renderTagOptions()
 	renderCategoryOptions(categorySelect?.value)
 	updateFilterIndicators()
 }
@@ -527,84 +695,68 @@ const createTaskMarkup = (task) => {
 	const statusLabel = TaskManager.STATUS_LABELS[task.status] ?? task.status
 	const statusClass = STATUS_BADGES[task.status] ?? STATUS_BADGES.pending
 	const dueDate = formatDate(task.dueDate)
-	const description = task.description
-		? `<p class="mt-2 line-clamp-2 text-sm text-gray-600">${escapeHtml(
-				task.description
-		  )}</p>`
-		: '<p class="mt-2 text-sm italic text-gray-400">(Aucune description)</p>'
-
-	const tags =
-		task.tags && task.tags.length
-			? `<div class="mt-4 flex flex-wrap gap-2">
-					${task.tags
-						.map(
-							(tag) => `
-							<span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-								${escapeHtml(tag)}
-							</span>`
-						)
-						.join('')}
-				</div>`
-			: ''
+	const descriptionSnippet = task.description
+		? escapeHtml(task.description)
+		: '(Aucune description)'
 
 	return `
-		<article class="group rounded-xl border border-gray-200 bg-white p-4 mb-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-			<div class="flex items-start justify-between gap-4">
-				<div class="flex items-start gap-3">
-					<input
-						type="checkbox"
-						class="check-completed mt-1 size-4 cursor-pointer accent-amber-400"
-						data-id="${task.id}"
-						${task.status === TaskManager.STATUS.COMPLETED ? 'checked' : ''}
-					/>
-					<div>
-						<h3 class="text-lg font-semibold ${
-							task.status === TaskManager.STATUS.COMPLETED
-								? 'text-gray-400 line-through'
-								: 'text-gray-800'
-						}">
-							${escapeHtml(task.title)}
-						</h3>
-						${description}
-					</div>
-				</div>
-					<div class="flex gap-1">
-						<button
-							type="button"
-							data-id="${task.id}"
-							class="edit-btn rounded-md p-2 text-sm text-gray-500 transition hover:bg-amber-50 hover:text-amber-600"
-							aria-label="Éditer la tâche"
-						>
-							${renderIcon(Pencil, { size: 18, className: 'shrink-0' })}
-						</button>
-						<button
-							type="button"
-							data-id="${task.id}"
-							class="delete-btn rounded-md p-2 text-sm text-red-500 transition hover:bg-red-50 hover:text-red-600"
-							aria-label="Supprimer la tâche"
-						>
-							${renderIcon(Trash2, { size: 18, className: 'shrink-0' })}
-						</button>
-					</div>
-				</div>
-				<div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-500">
-					<span class="inline-flex items-center gap-1">
-						${renderIcon(Calendar, { size: 16 })}
-						<span>${dueDate}</span>
-					</span>
-					<span class="inline-flex items-center gap-2">
-						<span class="inline-flex items-center gap-1 rounded-full px-2 py-1 ${statusClass}">
-							${renderIcon(CircleDot, { size: 12 })}
-							<span class="font-medium">${statusLabel}</span>
+		<article class="task-card group">
+			<div class="grid items-start gap-3" style="grid-template-columns:auto 1fr auto;">
+				<input
+					type="checkbox"
+					class="check-completed mt-1 h-4 w-4 cursor-pointer accent-emerald-500"
+					data-id="${task.id}"
+					${task.status === TaskManager.STATUS.COMPLETED ? 'checked' : ''}
+				/>
+				<div class="space-y-1">
+					<h3 class="text-base font-semibold ${
+						task.status === TaskManager.STATUS.COMPLETED
+							? 'text-gray-400 line-through'
+							: 'text-gray-800'
+					}">
+						${escapeHtml(task.title)}
+					</h3>
+					<div class="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+						<span class="inline-flex items-center gap-1">
+							${renderIcon(Calendar, { size: 14 })}
+							<span>${dueDate}</span>
 						</span>
-					</span>
-					<span class="inline-flex items-center gap-1">
-						${renderIcon(FolderClosed, { size: 16 })}
-						<span>${escapeHtml(task.category)}</span>
-					</span>
+						<span class="inline-flex items-center gap-2">
+							<span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${statusClass}">
+								<span class="h-1.5 w-1.5 rounded-full bg-current"></span>
+								<span>${statusLabel}</span>
+							</span>
+						</span>
+						<span class="inline-flex items-center gap-1">
+							${renderIcon(FolderClosed, { size: 14 })}
+							<span>${escapeHtml(task.category)}</span>
+						</span>
+						<span class="inline-flex items-center gap-1 text-[11px] text-gray-500 max-w-xs">
+							${renderIcon(CircleDot, { size: 12 })}
+							<span class="line-clamp-1">${descriptionSnippet}</span>
+						</span>
+					</div>
 				</div>
-			${tags}
-		</article>
+				<div class="flex gap-1">
+					<button
+						type="button"
+						data-id="${task.id}"
+						class="edit-btn rounded-md p-2 text-xs text-gray-500 transition hover:bg-emerald-50 hover:text-emerald-600"
+						aria-label="Éditer la tâche"
+					>
+						${renderIcon(Pencil, { size: 16, className: 'shrink-0' })}
+					</button>
+					<button
+						type="button"
+						data-id="${task.id}"
+						class="delete-btn rounded-md p-2 text-xs text-rose-500 transition hover:bg-rose-50 hover:text-rose-600"
+						aria-label="Supprimer la tâche"
+					>
+						${renderIcon(Trash2, { size: 16, className: 'shrink-0' })}
+					</button>
+				</div>
+			</div>
+	</article>
 	`
 }
 
@@ -638,7 +790,7 @@ const renderTasks = () => {
 	if (!tasks.length) {
 		const li = document.createElement('li')
 		li.className =
-			'rounded-xl border border-dashed border-gray-200 bg-white p-6 text-center text-sm text-gray-500'
+			'rounded-xl border border-dashed border-gray-200 bg-white p-6 text-center text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
 		li.innerHTML =
 			'Aucune tâche pour le moment. Ajoutez-en une pour commencer !'
 		taskList.appendChild(li)
@@ -665,19 +817,27 @@ function setFilter(type, value) {
 	renderTasks()
 }
 
-const resetFormState = () => {
+const resetFormState = (options = {}) => {
 	if (!form) return
+	const closeForm =
+		typeof options === 'boolean'
+			? options
+			: options.close !== undefined
+			? options.close
+			: true
 	form.reset()
 	setCurrentTags([])
 	editingTaskId = null
 	if (submitBtn) submitBtn.textContent = 'Ajouter'
 	if (taskTitle) taskTitle.textContent = 'Nouvelle tâche'
 	renderCategoryOptions(TaskManager.getCategories()[0])
+	if (closeForm) setFormVisible(false)
 }
 
 const handleEditById = (id) => {
 	const task = TaskManager.getTasks().find((item) => item.id === id)
 	if (!task) return
+	setFormVisible(true)
 
 	if (titleInput) titleInput.value = task.title
 	if (descInput) descInput.value = task.description
@@ -689,8 +849,6 @@ const handleEditById = (id) => {
 			? new Date(task.dueDate).toISOString().split('T')[0]
 			: ''
 	}
-
-	setCurrentTags(task.tags || [])
 
 	editingTaskId = id
 	if (submitBtn) submitBtn.textContent = 'Mettre à jour'
@@ -708,25 +866,7 @@ const handleDeleteById = (id) => {
 		resetFormState()
 	}
 	renderTasks()
-}
-
-const addTagToCurrent = (tag) => {
-	const normalized = normalizeTag(tag)
-	if (!normalized) return null
-	if (!currentTags.includes(normalized)) {
-		setCurrentTags([...currentTags, normalized])
-	}
-	return normalized
-}
-
-const addTagFromInput = () => {
-	if (!tagInput) return
-	const normalized = addTagToCurrent(tagInput.value)
-	if (normalized) {
-		TaskManager.registerTag(normalized)
-	}
-	tagInput.value = ''
-	renderSidebar()
+	showFeedback('La tâche a été supprimée.')
 }
 
 if (form) {
@@ -734,7 +874,11 @@ if (form) {
 		event.preventDefault()
 
 		const title = titleInput?.value.trim()
-		if (!title) return
+		if (!title) {
+			showFeedback('Veuillez saisir un titre pour la tâche.', 'error')
+			titleInput?.focus()
+			return
+		}
 
 		const payload = {
 			title,
@@ -742,20 +886,20 @@ if (form) {
 			category: categorySelect?.value ?? '',
 			status: statusSelect?.value ?? TaskManager.STATUS.PENDING,
 			dueDate: dateInput?.value || null,
-			tags: [...currentTags],
 		}
 
 		if (editingTaskId) {
-			TaskManager.updateTask(editingTaskId, payload)
-		} else {
-			TaskManager.addTask(
-				payload.title,
-				payload.description,
-				payload.category,
-				payload.dueDate,
-				payload.status,
-				payload.tags
-			)
+		TaskManager.updateTask(editingTaskId, payload)
+		showFeedback('La tâche a été mise à jour avec succès.')
+	} else {
+		TaskManager.addTask(
+			payload.title,
+			payload.description,
+			payload.category,
+			payload.dueDate,
+			payload.status
+		)
+			showFeedback('La tâche a été ajoutée avec succès.')
 		}
 
 		resetFormState()
@@ -794,6 +938,172 @@ if (taskList) {
 	})
 }
 
+if (openFormBtn) {
+	openFormBtn.addEventListener('click', () => {
+		resetFormState({ close: false })
+		setFormVisible(true)
+	})
+}
+
+if (closeFormBtn) {
+	closeFormBtn.addEventListener('click', () => {
+		resetFormState(true)
+	})
+}
+
+if (openSettingsBtn) {
+	openSettingsBtn.addEventListener('click', () => {
+		openSettingsPanel()
+	})
+}
+
+if (closeSettingsBtn) {
+	closeSettingsBtn.addEventListener('click', () => {
+		closeSettingsPanel()
+	})
+}
+
+if (settingsOverlay) {
+	settingsOverlay.addEventListener('click', () => closeSettingsPanel())
+}
+
+if (settingsThemeSelect) {
+	settingsThemeSelect.addEventListener('change', (event) => {
+		userSettings.theme = event.target.value
+		saveUserSettings()
+		applySettings()
+	})
+}
+
+if (settingsDensitySelect) {
+	settingsDensitySelect.addEventListener('change', (event) => {
+		userSettings.density = event.target.value
+		saveUserSettings()
+		applySettings()
+		renderTasks()
+	})
+}
+
+if (settingsLanguageSelect) {
+	settingsLanguageSelect.addEventListener('change', (event) => {
+		userSettings.language = event.target.value
+		saveUserSettings()
+	})
+}
+
+if (settingsFeedbackToggle) {
+	settingsFeedbackToggle.addEventListener('change', (event) => {
+		userSettings.notifications.feedback = event.target.checked
+		saveUserSettings()
+		if (!event.target.checked && feedbackRegion) {
+			feedbackRegion.textContent = ''
+			feedbackRegion.className = 'hidden'
+			feedbackRegion.dataset.visible = 'false'
+		}
+	})
+}
+
+if (settingsAddCategoryForm) {
+	settingsAddCategoryForm.addEventListener('submit', (event) => {
+		event.preventDefault()
+		const value = settingsAddCategoryInput?.value.trim()
+		if (!value) return
+		TaskManager.addCategory(value)
+		settingsAddCategoryInput.value = ''
+		renderSettingsCategories()
+		renderCategoryOptions(value)
+		renderSidebar()
+		showFeedback('Catégorie ajoutée avec succès.')
+	})
+}
+
+if (settingsExportBtn) {
+	settingsExportBtn.addEventListener('click', () => {
+		const data = {
+			tasks: TaskManager.getTasks(),
+			settings: userSettings,
+		}
+		const blob = new Blob([JSON.stringify(data, null, 2)], {
+			type: 'application/json',
+		})
+		const url = URL.createObjectURL(blob)
+		const link = document.createElement('a')
+		link.href = url
+		link.download = `todo-export-${new Date().toISOString().slice(0, 10)}.json`
+		document.body.appendChild(link)
+		link.click()
+		link.remove()
+		URL.revokeObjectURL(url)
+		showFeedback('Export JSON généré avec succès.')
+	})
+}
+
+if (settingsImportBtn && settingsImportFile) {
+	settingsImportBtn.addEventListener('click', () => settingsImportFile.click())
+	settingsImportFile.addEventListener('change', (event) => {
+		const file = event.target.files?.[0]
+		if (!file) return
+		const reader = new FileReader()
+		reader.onload = (e) => {
+			try {
+				const parsed = JSON.parse(e.target?.result || '[]')
+				const tasks = Array.isArray(parsed.tasks) ? parsed.tasks : Array.isArray(parsed) ? parsed : []
+				const importedSettings = parsed.settings
+				TaskManager.replaceAllTasks(tasks)
+				if (importedSettings) {
+					userSettings = {
+						...DEFAULT_USER_SETTINGS,
+						...importedSettings,
+						notifications: {
+							...DEFAULT_USER_SETTINGS.notifications,
+							...(importedSettings.notifications || {}),
+						},
+					}
+					applySettings()
+				}
+				saveUserSettings()
+				resetFormState(false)
+				renderTasks()
+				renderSidebar()
+				renderSettingsCategories()
+				showFeedback('Import réalisé avec succès.')
+				closeSettingsPanel()
+			} catch (error) {
+				console.error(error)
+				showFeedback('Fichier d’import invalide.', 'error')
+			}
+		}
+		reader.readAsText(file)
+	})
+}
+
+if (settingsResetBtn) {
+	settingsResetBtn.addEventListener('click', () => {
+		if (
+			window.confirm(
+				'Réinitialiser l’application ? Toutes les tâches et catégories personnalisées seront supprimées.'
+			)
+		) {
+			TaskManager.resetAll()
+			userSettings = { ...DEFAULT_USER_SETTINGS }
+			saveUserSettings()
+			applySettings()
+			resetFormState(false)
+			renderTasks()
+			renderSidebar()
+			renderSettingsCategories()
+			showFeedback('Application réinitialisée.')
+			closeSettingsPanel()
+		}
+	})
+}
+
+document.addEventListener('keydown', (event) => {
+	if (event.key === 'Escape' && settingsModal && !settingsModal.classList.contains('hidden')) {
+		closeSettingsPanel()
+	}
+})
+
 if (sidebarTaskFilters) {
 	sidebarTaskFilters.addEventListener('click', (event) => {
 	const item = event.target.closest('[data-view], [data-period], [data-status]')
@@ -815,67 +1125,18 @@ if (sidebarTaskFilters) {
 	})
 }
 
-if (selectedTagsContainer) {
-	selectedTagsContainer.addEventListener('click', (event) => {
-		const button = event.target.closest('button[data-remove-tag]')
-		if (!button) return
-		const { removeTag } = button.dataset
-		if (!removeTag) return
-		currentTags = currentTags.filter((tag) => tag !== removeTag)
-		renderSelectedTags()
-	})
-}
-
-if (tagListEl) {
-	tagListEl.addEventListener('click', (event) => {
-		const button = event.target.closest('button[data-tag]')
-		if (!button) return
-		const { tag } = button.dataset
-		if (!tag) return
-		addTagToCurrent(tag)
-	})
-}
-
-if (addTagBtn) {
-	addTagBtn.addEventListener('click', (event) => {
-		event.preventDefault()
-		addTagFromInput()
-	})
-}
-
-if (tagInput) {
-	tagInput.addEventListener('keydown', (event) => {
-		if (event.key === 'Enter') {
-			event.preventDefault()
-			addTagFromInput()
-		}
-	})
-}
-
-if (sidebarTagForm) {
-	sidebarTagForm.addEventListener('submit', (event) => {
-		event.preventDefault()
-		const value = normalizeTag(sidebarTagInput?.value ?? '')
-		if (!value) return
-		const registered = TaskManager.registerTag(value)
-		sidebarTagInput.value = ''
-		renderSidebar()
-		if (registered) {
-			addTagToCurrent(registered)
-		}
-	})
-}
-
 if (addCategoryBtn) {
 	addCategoryBtn.addEventListener('click', () => {
 		const name = normalizeTag(
 			window.prompt('Nom de la nouvelle catégorie ?') ?? ''
 		)
 		if (!name) return
-		TaskManager.addCategory(name)
-		renderCategoryOptions(name)
-		if (categorySelect) categorySelect.value = name
-		renderSidebar()
+	TaskManager.addCategory(name)
+	renderCategoryOptions(name)
+	if (categorySelect) categorySelect.value = name
+	renderSidebar()
+	renderSettingsCategories()
+	showFeedback('Catégorie ajoutée avec succès.')
 	})
 }
 
@@ -889,5 +1150,6 @@ setSidebarCollapsed(false)
 setCurrentTags([])
 renderCategoryOptions(TaskManager.getCategories()[0])
 renderSidebar()
+setFormVisible(false)
 
 export default renderTasks

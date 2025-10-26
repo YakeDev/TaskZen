@@ -2,24 +2,33 @@
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
-		<link rel="icon" type="image/svg+xml" href="/vite.svg" />
+		<link rel="icon" type="image/svg+xml" href="/erickay_fav.svg" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<link href="/src/assets/styles/style.css" rel="stylesheet" />
 		<title>To Do List Avancee</title>
 	</head>
-	<body class="h-screen">
-		<main id="app" class="grid gap-4 p-2 h-full" data-sidebar-collapsed="false">
+	<body
+		class="h-screen bg-slate-50 text-gray-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+		<main
+			id="app"
+			class="grid gap-4 p-2 h-full"
+			data-sidebar-collapsed="false"
+			data-form-visible="false"
+			data-density="comfortable">
 			<!-- Sidebar -->
 			<header
 				id="sidebar"
-				class="bg-gray-50 px-4 py-6 rounded-xl h-full overflow-auto flex flex-col"
+				class="px-4 py-6 rounded-xl h-full overflow-auto flex flex-col border border-transparent transition-colors duration-300 dark:border-slate-800"
 				data-collapsed="false">
 				<div class="sidebar-header flex items-center justify-between mb-4">
-					<h1 class="text-xl font-bold sidebar-title">TaskZen</h1>
+					<h1
+						class="text-2xl font-bold sidebar-title text-gray-900 dark:text-slate-100">
+						TaskZen
+					</h1>
 					<button
 						id="menuToggleBtn"
 						type="button"
-						class="p-2 rounded-lg focus:outline-none hover:bg-gray-200 transition"
+						class="p-2 rounded-lg focus:outline-none transition hover:bg-gray-200 dark:text-slate-200 dark:hover:bg-slate-800"
 						aria-label="Masquer le menu"
 						aria-controls="sidebarContent"
 						aria-expanded="true">
@@ -43,59 +52,77 @@
 					<div>
 						<input
 							type="text"
-							placeholder="Search"
-							class="w-full px-3 py-2 rounded-lg border border-gray-300 text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+							placeholder="Rechercher"
+							class="w-full px-3 py-2 rounded-lg border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
 					</div>
 
 					<div class="space-y-2">
-						<h2 class="text-xs font-bold text-gray-500 uppercase">Tasks</h2>
-						<ul id="sidebarTaskFilters" class="space-y-2">
+						<h2
+							class="text-xs font-bold text-gray-500 uppercase dark:text-slate-400">
+							Tâches
+						</h2>
+						<ul id="sidebarTaskFilters" class="space-y-2 text-sm">
 							<li
 								data-view="dashboard"
-								class="flex justify-between items-center px-2 py-1 rounded text-gray-600 hover:bg-gray-200 cursor-pointer transition">
-								<span>Dashboard</span>
+								class="flex items-center justify-between px-2 py-1 rounded text-gray-600 transition hover:bg-gray-200 dark:text-slate-300 dark:hover:bg-slate-800">
+								<span class="flex items-center gap-2">
+									<svg class="w-4 h-4" data-icon="dashboard"></svg>
+									<span>Tableau de bord</span>
+								</span>
 								<span
-									class="bg-gray-300 rounded-full px-2 text-xs font-semibold"
+									class="bg-gray-200 rounded-full px-2 text-xs font-semibold text-gray-700 dark:bg-slate-700 dark:text-slate-200"
 									data-count="dashboard"
 									>0</span
 								>
 							</li>
 							<li
 								data-period="upcoming"
-								class="flex justify-between items-center px-2 py-1 rounded text-gray-600 hover:bg-gray-200 cursor-pointer transition">
-								<span>Upcoming</span>
+								class="flex items-center justify-between px-2 py-1 rounded text-gray-600 transition hover:bg-gray-200 dark:text-slate-300 dark:hover:bg-slate-800">
+								<span class="flex items-center gap-2">
+									<svg class="w-4 h-4" data-icon="upcoming"></svg>
+									<span>À venir</span>
+								</span>
 								<span
-									class="bg-gray-300 rounded-full px-2 text-xs font-semibold"
+									class="bg-gray-200 rounded-full px-2 text-xs font-semibold text-gray-700 dark:bg-slate-700 dark:text-slate-200"
 									data-count="upcoming"
 									>0</span
 								>
 							</li>
 							<li
 								data-period="today"
-								class="flex justify-between items-center px-2 py-1 rounded text-gray-600 hover:bg-gray-200 cursor-pointer transition">
-								<span>Today</span>
+								class="flex items-center justify-between px-2 py-1 rounded text-gray-600 transition hover:bg-gray-200 dark:text-slate-300 dark:hover:bg-slate-800">
+								<span class="flex items-center gap-2">
+									<svg class="w-4 h-4" data-icon="today"></svg>
+									<span>Aujourd'hui</span>
+								</span>
 								<span
-									class="bg-gray-300 rounded-full px-2 text-xs font-semibold"
+									class="bg-gray-200 rounded-full px-2 text-xs font-semibold text-gray-700 dark:bg-slate-700 dark:text-slate-200"
 									data-count="today"
 									>0</span
 								>
 							</li>
 							<li
 								data-status="overdue"
-								class="flex justify-between items-center px-2 py-1 rounded text-gray-600 hover:bg-gray-200 cursor-pointer transition">
-								<span>En retard</span>
+								class="flex items-center justify-between px-2 py-1 rounded text-gray-600 transition hover:bg-gray-200 dark:text-slate-300 dark:hover:bg-slate-800">
+								<span class="flex items-center gap-2">
+									<svg class="w-4 h-4" data-icon="overdue"></svg>
+									<span>En retard</span>
+								</span>
 								<span
-									class="bg-gray-300 rounded-full px-2 text-xs font-semibold"
+									class="bg-gray-200 rounded-full px-2 text-xs font-semibold text-gray-700 dark:bg-slate-700 dark:text-slate-200"
 									data-count="overdue"
 									>0</span
 								>
 							</li>
 							<li
 								data-status="completed"
-								class="flex justify-between items-center px-2 py-1 rounded text-gray-600 hover:bg-gray-200 cursor-pointer transition">
-								<span>Terminées</span>
+								class="flex items-center justify-between px-2 py-1 rounded text-gray-600 transition hover:bg-gray-200 dark:text-slate-300 dark:hover:bg-slate-800">
+								<span class="flex items-center gap-2">
+									<svg class="w-4 h-4" data-icon="completed"></svg>
+									<span>Terminées</span>
+								</span>
 								<span
-									class="bg-gray-300 rounded-full px-2 text-xs font-semibold"
+									class="bg-gray-200 rounded-full px-2 text-xs font-semibold text-gray-700 dark:bg-slate-700 dark:text-slate-200"
 									data-count="completed"
 									>0</span
 								>
@@ -104,107 +131,146 @@
 					</div>
 
 					<div class="space-y-2">
-						<h2 class="text-xs font-bold text-gray-500 uppercase">Catégorie</h2>
+						<h2
+							class="text-xs font-bold text-gray-500 uppercase dark:text-slate-400">
+							Catégorie
+						</h2>
 						<ul
 							id="categoryList"
-							class="space-y-2 max-h-56 overflow-y-auto pr-1"></ul>
+							class="space-y-2 max-h-40 overflow-y-auto pr-1"></ul>
 						<button
 							id="addCategoryBtn"
 							type="button"
-							class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-xs font-semibold text-gray-600 hover:border-gray-400 hover:text-gray-800">
+							class="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-gray-400 hover:text-gray-800 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-500">
 							<span class="text-lg leading-none">+</span>
 							Créer une nouvelle catégorie
 						</button>
 					</div>
 
-					<div class="space-y-2">
-						<h2 class="text-xs font-bold text-gray-500 uppercase">Tags</h2>
-						<div id="tagList" class="flex flex-wrap gap-2"></div>
-						<form id="sidebarTagForm" class="mt-3 flex gap-2">
-							<input
-								type="text"
-								id="sidebarTagInput"
-								placeholder="Créer ou rechercher un tag"
-								class="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs text-gray-700 focus:border-amber-400 focus:outline-none" />
-							<button
-								type="submit"
-								class="rounded-lg bg-amber-400 px-3 py-2 text-xs font-semibold text-gray-900 hover:bg-amber-500">
-								Ajouter
-							</button>
-						</form>
-					</div>
-
-					<div class="mt-auto border-t pt-4 space-y-2">
+					<div class="mt-auto space-y-2">
 						<button
-							class="flex items-center gap-2 text-gray-700 hover:text-gray-900">
+							id="openSettingsBtn"
+							class="flex items-center gap-2 text-gray-700 transition hover:text-gray-900 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 rounded-md px-2 py-1">
 							<svg
 								class="w-5 h-5"
+								xmlns="http://www.w3.org/2000/svg"
 								fill="none"
+								viewBox="0 0 24 24"
 								stroke="currentColor"
-								viewBox="0 0 24 24">
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round">
+								<path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
 								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M12 6v6l4 2" />
+									d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 8.1 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H8a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V8a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
 							</svg>
-							Settings
+							Paramètres
 						</button>
 						<button
-							class="flex items-center gap-2 text-gray-700 hover:text-gray-900">
+							class="flex items-center gap-2 text-gray-700 transition hover:text-gray-900 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 rounded-md px-2 py-1">
 							<svg
 								class="w-5 h-5"
+								xmlns="http://www.w3.org/2000/svg"
 								fill="none"
+								viewBox="0 0 24 24"
 								stroke="currentColor"
-								viewBox="0 0 24 24">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5" />
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round">
+								<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+								<polyline points="16 17 21 12 16 7" />
+								<line x1="21" y1="12" x2="9" y2="12" />
 							</svg>
-							Sign out
+							Déconnexion
 						</button>
 					</div>
 				</div>
 			</header>
 
-			<section id="taskSection" class="p-2 h-full overflow-auto">
+			<section
+				id="taskSection"
+				class="p-2 h-full overflow-auto text-gray-900 dark:text-slate-100 transition-colors duration-300">
 				<div id="stats"></div>
 				<div class="pt-4 space-y-4">
-					<h2
-						id="tasksViewTitle"
-						class="text-sm font-semibold uppercase tracking-wide text-gray-600">
-						Mes tâches
-					</h2>
-					<ul id="taskList"></ul>
+					<div class="flex items-center justify-between">
+						<h2
+							id="tasksViewTitle"
+							class="text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-slate-300">
+							Mes tâches
+						</h2>
+						<button
+							id="openFormBtn"
+							type="button"
+							class="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-3 py-2 text-xs font-semibold text-white shadow hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:bg-emerald-600 dark:hover:bg-emerald-500">
+							<svg
+								class="w-4 h-4"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 4v16m8-8H4" />
+							</svg>
+							Nouvelle tâche
+						</button>
+					</div>
+					<ul id="taskList" class="space-y-2"></ul>
 				</div>
 			</section>
 			<aside
 				id="formAside"
-				class="bg-gray-50 p-4 rounded-xl h-full flex flex-col">
+				class="bg-gray-50 dark:bg-slate-900 p-4 rounded-xl h-full flex flex-col hidden border border-transparent dark:border-slate-800 transition-colors duration-300">
 				<form id="taskForm" class="flex flex-col h-full">
 					<div class="flex-grow space-y-4 overflow-auto p-6">
-						<h2 id="task-title" class="text-2xl font-semibold text-gray-900">
-							Nouvelle tâche
-						</h2>
+						<div class="flex items-start justify-between">
+							<h2
+								id="task-title"
+								class="text-lg font-semibold text-gray-900 dark:text-slate-100">
+								Nouvelle tâche
+							</h2>
+							<button
+								type="button"
+								id="closeFormBtn"
+								class="rounded-full p-2 text-gray-500 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 dark:text-slate-300 dark:hover:bg-slate-800"
+								aria-label="Fermer le formulaire">
+								<svg
+									class="w-4 h-4"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M6 18 18 6M6 6l12 12" />
+								</svg>
+							</button>
+						</div>
+
+						<div
+							id="formFeedback"
+							class="hidden"
+							role="status"
+							aria-live="polite"></div>
 
 						<!-- Champ Titre -->
 						<div>
 							<label
 								for="title"
-								class="block text-sm font-normal text-gray-500">
+								class="block text-sm font-normal text-gray-500 dark:text-slate-300">
 								Titre
 							</label>
 							<div
-								class="mt-2 flex items-center rounded-md pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600">
+								class="mt-2 flex items-center rounded-md pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-emerald-500 dark:outline-slate-700">
 								<input
 									type="text"
 									id="title"
 									name="title"
 									placeholder="Entrez un titre"
 									required
-									class="block w-full py-1.5 pr-3 pl-1 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm" />
+									class="block w-full py-1.5 pr-3 pl-1 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-400" />
 							</div>
 						</div>
 
@@ -212,17 +278,17 @@
 						<div>
 							<label
 								for="description"
-								class="block text-sm font-normal text-gray-500">
+								class="block text-sm font-normal text-gray-500 dark:text-slate-300">
 								Description
 							</label>
 							<div
-								class="mt-2 flex rounded-md outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600">
+								class="mt-2 flex rounded-md outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-emerald-500 dark:outline-slate-700">
 								<textarea
 									id="description"
 									name="description"
 									rows="5"
 									placeholder="Décrivez la tâche..."
-									class="block w-full resize-none py-1.5 px-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm"></textarea>
+									class="block w-full resize-none py-1.5 px-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-400"></textarea>
 							</div>
 						</div>
 
@@ -232,15 +298,15 @@
 								<div class="flex flex-row items-center justify-between gap-6">
 									<label
 										for="category"
-										class="block text-sm font-normal text-gray-500">
+										class="block text-sm font-normal text-gray-500 dark:text-slate-300">
 										Catégorie
 									</label>
 									<div
-										class="mt-2 flex rounded-md outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600">
+										class="mt-2 flex rounded-md outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-emerald-500 dark:outline-slate-700">
 										<select
 											id="category"
 											name="category"
-											class="block w-36 py-1.5 px-3 text-base text-gray-900 focus:outline-none sm:text-sm bg-transparent">
+											class="block w-36 py-1.5 px-3 text-base text-gray-900 focus:outline-none sm:text-sm bg-transparent dark:bg-slate-800 dark:text-slate-100">
 											<option value="Par defaut">Par défaut</option>
 											<option value="Étude">Étude</option>
 											<option value="Travail">Travail</option>
@@ -255,16 +321,16 @@
 								<div class="flex flex-row items-center justify-between gap-6">
 									<label
 										for="dueDate"
-										class="block text-sm font-normal text-gray-500">
+										class="block text-sm font-normal text-gray-500 dark:text-slate-300">
 										Date d'échéance
 									</label>
 									<div
-										class="mt-2 flex rounded-md pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600">
+										class="mt-2 flex rounded-md pl-3 outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-emerald-500 dark:outline-slate-700">
 										<input
 											type="date"
 											id="dueDate"
 											name="dueDate"
-											class="block w-32 py-1.5 pr-3 pl-1 text-base text-gray-900 focus:outline-none sm:text-sm bg-transparent" />
+											class="block w-32 py-1.5 pr-3 pl-1 text-base text-gray-900 focus:outline-none sm:text-sm bg-transparent dark:bg-slate-800 dark:text-slate-100" />
 									</div>
 								</div>
 							</div>
@@ -274,49 +340,20 @@
 								<div class="flex flex-row items-center justify-between gap-6">
 									<label
 										for="status"
-										class="block text-sm font-normal text-gray-500">
+										class="block text-sm font-normal text-gray-500 dark:text-slate-300">
 										Statut
 									</label>
 									<div
-										class="mt-2 flex w-36 rounded-md outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600">
+										class="mt-2 flex w-36 rounded-md outline outline-1 -outline-offset-1 outline-gray-300 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-emerald-500 dark:outline-slate-700">
 										<select
 											id="status"
 											name="status"
-											class="block w-full py-1.5 px-3 text-base text-gray-900 focus:outline-none sm:text-sm bg-transparent">
+											class="block w-full py-1.5 px-3 text-base text-gray-900 focus:outline-none sm:text-sm bg-transparent dark:bg-slate-800 dark:text-slate-100">
 											<option value="pending">À faire</option>
 											<option value="in-progress">En cours</option>
 											<option value="overdue">En retard</option>
 											<option value="completed">Terminée</option>
 										</select>
-									</div>
-								</div>
-							</div>
-
-							<!-- Tags -->
-							<div class="col-span-5">
-								<label class="block text-sm font-normal text-gray-500">
-									Tags
-								</label>
-								<div class="mt-2 space-y-2">
-									<div
-										id="selectedTags"
-										class="flex flex-wrap gap-2 text-sm text-gray-600"></div>
-									<div class="flex flex-col gap-2 sm:flex-row">
-										<div class="relative w-full">
-											<input
-												type="text"
-												id="tagInput"
-												list="tagOptions"
-												placeholder="Tapez un tag puis Entrée"
-												class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-amber-400 focus:outline-none" />
-											<datalist id="tagOptions"></datalist>
-										</div>
-										<button
-											type="button"
-											id="addTagBtn"
-											class="rounded-md bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-300">
-											Ajouter
-										</button>
 									</div>
 								</div>
 							</div>
@@ -329,13 +366,149 @@
 						<button
 							type="submit"
 							id="submit-btn"
-							class="w-full sm:w-auto grow rounded-lg bg-amber-400 px-6 py-3 text-lg font-bold text-gray-900 hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500">
-							Ajouter tache
+							class="w-full sm:w-auto grow rounded-lg bg-emerald-500 px-6 py-3 text-lg font-bold text-white shadow hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+							Ajouter une tâche
 						</button>
 					</div>
 				</form>
 			</aside>
 		</main>
+
+		<div id="settingsModal" class="fixed inset-0 z-40 hidden">
+			<div id="settingsOverlay" class="absolute inset-0 bg-black/40"></div>
+			<div
+				class="absolute right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl flex flex-col dark:bg-slate-900 dark:text-slate-100">
+				<header class="flex items-center justify-between border-b px-6 py-4">
+					<div>
+						<h2 class="text-lg font-semibold text-gray-900">Paramètres</h2>
+						<p class="text-sm text-gray-500">Personnalisez votre expérience.</p>
+					</div>
+					<button
+						id="closeSettingsBtn"
+						class="rounded-full p-2 text-gray-500 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+						aria-label="Fermer les paramètres">
+						<svg
+							class="w-4 h-4"
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round">
+							<path d="M6 18 18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</header>
+				<div class="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+					<section class="space-y-3">
+						<h3
+							class="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+							Langue & Affichage
+						</h3>
+						<div class="grid gap-3">
+							<label class="flex flex-col text-sm text-gray-600">
+								<span>Langue de l’interface</span>
+								<select
+									id="settingsLanguage"
+									class="mt-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-emerald-400 focus:outline-none">
+									<option value="fr">Français</option>
+									<option value="en" disabled>English (bientôt)</option>
+								</select>
+							</label>
+							<label class="flex flex-col text-sm text-gray-600">
+								<span>Thème</span>
+								<select
+									id="settingsTheme"
+									class="mt-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-emerald-400 focus:outline-none">
+									<option value="light">Clair</option>
+									<option value="dark">Sombre</option>
+								</select>
+							</label>
+							<label class="flex flex-col text-sm text-gray-600">
+								<span>Densité de la liste</span>
+								<select
+									id="settingsDensity"
+									class="mt-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-emerald-400 focus:outline-none">
+									<option value="comfortable">Confortable</option>
+									<option value="compact">Compact</option>
+								</select>
+							</label>
+						</div>
+					</section>
+
+					<section class="space-y-3">
+						<h3
+							class="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+							Notifications
+						</h3>
+						<label class="flex items-center gap-2 text-sm text-gray-600">
+							<input
+								type="checkbox"
+								id="settingsFeedback"
+								class="h-4 w-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400" />
+							<span>Afficher les messages de confirmation</span>
+						</label>
+					</section>
+
+					<section class="space-y-3">
+						<h3
+							class="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+							Gestion des catégories
+						</h3>
+						<p class="text-xs text-gray-500">
+							Renommez ou supprimez vos catégories personnalisées.
+						</p>
+						<ul id="settingsCategoriesList" class="space-y-2"></ul>
+						<form id="settingsAddCategoryForm" class="flex gap-2">
+							<input
+								type="text"
+								id="settingsAddCategoryInput"
+								placeholder="Nouvelle catégorie"
+								class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-emerald-400 focus:outline-none" />
+							<button
+								type="submit"
+								class="rounded-md bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-400">
+								Ajouter
+							</button>
+						</form>
+					</section>
+
+					<section class="space-y-3">
+						<h3
+							class="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+							Données
+						</h3>
+						<div class="flex flex-col gap-2 text-sm text-gray-600">
+							<button
+								id="settingsExportBtn"
+								type="button"
+								class="rounded-md border border-gray-300 px-3 py-2 text-left hover:bg-gray-100">
+								Exporter les tâches (JSON)
+							</button>
+							<button
+								id="settingsImportBtn"
+								type="button"
+								class="rounded-md border border-gray-300 px-3 py-2 text-left hover:bg-gray-100">
+								Importer des tâches (JSON)
+							</button>
+							<button
+								id="settingsResetBtn"
+								type="button"
+								class="rounded-md border border-rose-300 px-3 py-2 text-left text-rose-600 hover:bg-rose-50">
+								Réinitialiser l’application
+							</button>
+						</div>
+					</section>
+				</div>
+			</div>
+		</div>
+		<input
+			type="file"
+			id="settingsImportFile"
+			class="hidden"
+			accept="application/json" />
+
 		<script type="module" src="/src/main.js"></script>
 	</body>
 </html>
